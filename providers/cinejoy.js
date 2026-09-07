@@ -1,6 +1,6 @@
 /**
  * cinejoy - Built from src/cinejoy/
- * Generated: 2026-09-07T17:25:39.203Z
+ * Generated: 2026-09-07T17:34:59.490Z
  */
 "use strict";
 var __defProp = Object.defineProperty;
@@ -72,7 +72,7 @@ var API_GATEWAY_URL = "https://api.shegu.st";
 var SUBTITLES_API_URL = "https://subtitles.shegu.st";
 var ENC_DEC_API_URL = "https://enc-dec.app/api";
 var CINEJOY_EDGE_API = "https://nuvio-providers-rose.vercel.app/api/cinejoy";
-var SERVERS = ["Lisbon", "Nebula", "Solara", "Joy"];
+var SERVERS = ["Lisbon", "Solara", "Nebula", "Joy"];
 var CINEJOY_HEADERS = {
   Accept: "*/*",
   Origin: CINEJOY_ORIGIN,

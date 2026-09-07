@@ -13,7 +13,7 @@ export const CINEJOY_EDGE_API = 'https://nuvio-providers-rose.vercel.app/api/cin
 /**
  * Top fast and reliable server names supported by Cinejoy.
  */
-export const SERVERS = ['Lisbon', 'Nebula', 'Solara', 'Joy'] as const;
+export const SERVERS = ['Lisbon', 'Solara', 'Nebula', 'Joy'] as const;
 
 export type CinejoyServer = (typeof SERVERS)[number];
 

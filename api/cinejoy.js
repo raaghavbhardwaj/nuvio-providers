@@ -10,7 +10,7 @@ const API_GATEWAY_URL = 'https://api.shegu.st';
 const SUBTITLES_API_URL = 'https://subtitles.shegu.st';
 const ENC_DEC_API_URL = 'https://enc-dec.app/api';
 
-const SERVERS = ['Lisbon', 'Nebula', 'Solara', 'Joy'];
+const SERVERS = ['Lisbon', 'Solara', 'Nebula', 'Joy'];
 
 const CINEJOY_HEADERS = {
   Accept: '*/*',
@@ -20,6 +20,16 @@ const CINEJOY_HEADERS = {
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
 };
 
+function getPlayerHeaders() {
+  return {
+    Accept: '*/*',
+    Origin: CINEJOY_ORIGIN,
+    Referer: CINEJOY_REFERER,
+    'User-Agent':
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
+  };
+}
+
 async function fetchSubtitles(mediaType, tmdbId, season, episode) {
   try {
     const typeParam = mediaType === 'tv' ? 'series' : 'movie';
@@ -28,7 +38,10 @@ async function fetchSubtitles(mediaType, tmdbId, season, episode) {
       url += `&season=${season}&episode=${episode}`;
     }
 
-    const res = await fetch(url, { headers: CINEJOY_HEADERS });
+    const res = await fetch(url, {
+      headers: { ...CINEJOY_HEADERS },
+      signal: AbortSignal.timeout(5000),
+    });
     if (!res.ok) return [];
 
     const data = await res.json();
@@ -40,6 +53,7 @@ async function fetchSubtitles(mediaType, tmdbId, season, episode) {
         url: sub.url,
         language: sub.language || 'en',
         name: sub.display || sub.language || 'English',
+        headers: getPlayerHeaders(),
       }));
   } catch {
     return [];
@@ -56,7 +70,7 @@ async function extractServer(server, mediaType, tmdbId, season, episode, debugLo
 
     // 1. Sign request via helper API
     const encUrl = `${ENC_DEC_API_URL}/enc-cinejoy?url=${encodeURIComponent(targetUrl)}`;
-    const encRes = await fetch(encUrl);
+    const encRes = await fetch(encUrl, { signal: AbortSignal.timeout(6000) });
     if (!encRes.ok) {
       debugLogs.push(`[${server}] encRes ${encRes.status}`);
       return [];
@@ -80,6 +94,7 @@ async function extractServer(server, mediaType, tmdbId, season, episode, debugLo
         'Content-Type': 'application/octet-stream',
       },
       body: binaryPayload,
+      signal: AbortSignal.timeout(6000),
     });
     if (!gateRes.ok) {
       const errText = await gateRes.text();
@@ -99,6 +114,7 @@ async function extractServer(server, mediaType, tmdbId, season, episode, debugLo
         text: gateBuffer.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''),
         state,
       }),
+      signal: AbortSignal.timeout(6000),
     });
     if (!decRes.ok) {
       debugLogs.push(`[${server}] decRes status: ${decRes.status}`);
@@ -116,14 +132,15 @@ async function extractServer(server, mediaType, tmdbId, season, episode, debugLo
     for (const item of streamList) {
       const streamUrl = item.playlist || item.url;
       if (!streamUrl) continue;
+      const is4K = server === 'Lisbon';
       streams.push({
         name: 'Cinejoy',
-        title: `Cinejoy [${server}] - 1080p (HLS)`,
+        title: `Cinejoy [${server}] - ${is4K ? '4K/1080p' : '1080p'} (HLS)`,
         url: streamUrl,
-        quality: '1080p',
+        quality: is4K ? '4K' : '1080p',
         format: 'm3u8',
         provider: 'cinejoy',
-        headers: {},
+        headers: getPlayerHeaders(),
       });
     }
 
