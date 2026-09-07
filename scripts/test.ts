@@ -1,4 +1,5 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
+export {};
 
 /**
  * @fileoverview CLI test runner for Nuvio providers.
@@ -16,7 +17,7 @@ const fs = require('fs');
  * @param headers Optional headers (Referer, User-Agent, etc.).
  * @returns An HTTP status code or string describing the result.
  */
-async function probeUrl(url, headers = {}) {
+async function probeUrl(url: string, headers: any = {}) {
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 5000);

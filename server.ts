@@ -1,32 +1,29 @@
-const http = require('http');
-const path = require('path');
-const fs = require('fs');
+import http from 'http';
+import path from 'path';
+import fs from 'fs';
+import cinejoyHandler from './api/cinejoy';
 
 const PORT = process.env.PORT || 3000;
 
-// Import our cinejoy handler
-const cinejoyModule = require('./api/cinejoy.js');
-const cinejoyHandler = cinejoyModule.default || cinejoyModule;
-
 const server = http.createServer(async (req, res) => {
-  const urlObj = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const urlObj = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
 
   if (urlObj.pathname === '/api/cinejoy') {
-    req.query = Object.fromEntries(urlObj.searchParams.entries());
-    res.status = (code) => {
+    (req as any).query = Object.fromEntries(urlObj.searchParams.entries());
+    (res as any).status = (code: number) => {
       res.statusCode = code;
       return res;
     };
-    res.json = (data) => {
+    (res as any).json = (data: any) => {
       res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify(data));
       return res;
     };
-    res.send = (data) => {
+    (res as any).send = (data: any) => {
       res.end(data);
       return res;
     };
-    return cinejoyHandler(req, res);
+    return cinejoyHandler(req as any, res as any);
   }
 
   // Handle static files / manifest.json
@@ -42,7 +39,12 @@ const server = http.createServer(async (req, res) => {
   let filePath = path.join(__dirname, urlObj.pathname === '/' ? 'manifest.json' : urlObj.pathname);
   if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
     const ext = path.extname(filePath);
-    const contentType = ext === '.json' ? 'application/json' : ext === '.js' ? 'application/javascript' : 'text/plain';
+    const contentType =
+      ext === '.json'
+        ? 'application/json'
+        : ext === '.js'
+          ? 'application/javascript'
+          : 'text/plain';
     res.writeHead(200, { 'Content-Type': contentType });
     fs.createReadStream(filePath).pipe(res);
   } else {
@@ -57,4 +59,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = server;
+export default server;

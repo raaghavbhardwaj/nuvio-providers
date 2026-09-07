@@ -1,3 +1,4 @@
+export {};
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -26,7 +27,7 @@ const mimeTypes = {
   '.html': 'text/html',
 };
 
-const server = http.createServer((req, res) => {
+const server = http.createServer((req: any, res: any) => {
   console.log(`${req.method} ${req.url}`);
 
   // Handle CORS
@@ -53,12 +54,12 @@ const server = http.createServer((req, res) => {
   const videoExtensions = ['.mp4', '.mkv', '.avi', '.mov'];
 
   const extname = path.extname(filePath);
-  let contentType = mimeTypes[extname] || 'application/octet-stream';
+  let contentType = mimeTypes[extname as keyof typeof mimeTypes] || 'application/octet-stream';
   if (videoExtensions.includes(extname)) {
     contentType = 'video/mp4'; // Defaulting to mp4 for video files for simplicity
   }
 
-  fs.readFile(filePath, (err, content) => {
+  fs.readFile(filePath, (err: any, content: any) => {
     if (err) {
       if (err.code === 'ENOENT') {
         // If asking for root and index.html doesn't exist, allow checking specific files

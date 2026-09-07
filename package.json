@@ -3,21 +3,24 @@
   "version": "1.0.0",
   "description": "Providers for Nuvio Streaming",
   "scripts": {
-    "build": "node build.js",
-    "build:watch": "node build.js --watch",
-    "test": "node scripts/test.js",
-    "validate": "node scripts/validate.js",
+    "start": "tsx server.ts",
+    "build": "tsx build.ts",
+    "build:watch": "tsx build.ts --watch",
+    "test": "tsx scripts/test.ts",
+    "validate": "tsx scripts/validate.ts",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "tsc --noEmit && prettier --check .",
-    "check": "node scripts/validate.js && tsc --noEmit && prettier --check ."
+    "check": "tsx scripts/validate.ts && tsc --noEmit && prettier --check ."
   },
   "devDependencies": {
     "@types/node": "^26.4.1",
+    "@vercel/node": "^12.0.1",
     "esbuild": "^0.20.0",
     "nodemon": "^3.0.0",
     "prettier": "^3.9.6",
+    "tsx": "^4.23.13",
     "typescript": "^7.0.2",
     "vercel": "^59.11.7"
   },

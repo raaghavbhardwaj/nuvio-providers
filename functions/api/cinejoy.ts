@@ -112,7 +112,9 @@ async function fetchSubtitles(
     const res = await fetch(url, { headers: CINEJOY_HEADERS });
     if (!res.ok) return [];
 
-    const data = (await res.json()) as { subtitles?: Array<{ language?: string; display?: string; url?: string }> };
+    const data = (await res.json()) as {
+      subtitles?: Array<{ language?: string; display?: string; url?: string }>;
+    };
     if (!data?.subtitles || !Array.isArray(data.subtitles)) return [];
 
     return data.subtitles
@@ -235,7 +237,6 @@ export async function onRequestGet(context: { request: Request }): Promise<Respo
   const episode = url.searchParams.get('episode');
   const debug = url.searchParams.get('debug') === 'true';
 
-
   if (!tmdbId) {
     return new Response(JSON.stringify({ error: 'Missing required query parameter "tmdb"' }), {
       status: 400,
@@ -248,7 +249,9 @@ export async function onRequestGet(context: { request: Request }): Promise<Respo
   try {
     const [subtitles, ...serverResults] = await Promise.all([
       fetchSubtitles(mediaType, tmdbId, season, episode),
-      ...SERVERS.map(server => extractServer(server, mediaType, tmdbId, season, episode, debugLogs)),
+      ...SERVERS.map(server =>
+        extractServer(server, mediaType, tmdbId, season, episode, debugLogs)
+      ),
     ]);
 
     const allStreams: Stream[] = [];

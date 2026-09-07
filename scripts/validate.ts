@@ -1,4 +1,5 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
+export {};
 
 /**
  * @fileoverview Manifest validation script for Nuvio provider repositories.
@@ -27,12 +28,12 @@ function validateManifest() {
     const rawContent = fs.readFileSync(MANIFEST_PATH, 'utf8');
     manifest = JSON.parse(rawContent);
   } catch (err) {
-    console.error('❌ Error: manifest.json contains invalid JSON syntax:', err.message);
+    console.error('❌ Error: manifest.json contains invalid JSON syntax:', (err as any).message);
     process.exit(1);
   }
 
   const errors = [];
-  const warnings = [];
+  const warnings: string[] = [];
 
   if (!manifest.name) errors.push('Root object missing required "name" field.');
   if (!manifest.version) errors.push('Root object missing required "version" field.');
@@ -46,7 +47,7 @@ function validateManifest() {
   const seenIds = new Set();
   const seenFiles = new Set();
 
-  manifest.scrapers.forEach((scraper, index) => {
+  manifest.scrapers.forEach((scraper: any, index: number) => {
     const label = `Scraper #${index + 1} (${scraper.name || scraper.id || 'unnamed'}):`;
 
     if (!scraper.id) {

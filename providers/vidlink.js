@@ -1,11 +1,13 @@
 /**
  * vidlink - Built from src/vidlink/
- * Generated: 2025-12-31T21:23:16.719Z
+ * Generated: 2026-09-07T17:59:07.779Z
  */
 "use strict";
 var __defProp = Object.defineProperty;
 var __defProps = Object.defineProperties;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
+var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getOwnPropSymbols = Object.getOwnPropertySymbols;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __propIsEnum = Object.prototype.propertyIsEnumerable;
@@ -22,6 +24,19 @@ var __spreadValues = (a, b) => {
   return a;
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 var __async = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
@@ -43,18 +58,20 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 
-// src/vidlink/constants.js
+// src/vidlink/index.ts
+var vidlink_exports = {};
+__export(vidlink_exports, {
+  getStreams: () => getStreams
+});
+module.exports = __toCommonJS(vidlink_exports);
 var TMDB_API_KEY = "68e094699525b18a70bab2f86b1fa706";
 var ENC_DEC_API = "https://enc-dec.app/api";
 var VIDLINK_API = "https://vidlink.pro/api/b";
 var VIDLINK_HEADERS = {
-  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
   "Connection": "keep-alive",
   "Referer": "https://vidlink.pro/",
   "Origin": "https://vidlink.pro"
 };
-
-// src/vidlink/http.js
 function makeRequest(_0) {
   return __async(this, arguments, function* (url, options = {}) {
     const defaultHeaders = __spreadValues({
@@ -79,8 +96,6 @@ function makeRequest(_0) {
     }
   });
 }
-
-// src/vidlink/tmdb.js
 function getTmdbInfo(tmdbId, mediaType) {
   return __async(this, null, function* () {
     var _a, _b;
@@ -110,8 +125,6 @@ function encryptTmdbId(tmdbId) {
     }
   });
 }
-
-// src/vidlink/m3u8.js
 function resolveUrl(url, baseUrl) {
   if (url.startsWith("http")) {
     return url;
@@ -214,8 +227,6 @@ function fetchAndParseM3U8(playlistUrl, mediaInfo, subtitles) {
     }
   });
 }
-
-// src/vidlink/processor.js
 function extractQuality(streamData) {
   if (!streamData)
     return "Unknown";
@@ -393,8 +404,6 @@ function processVidlinkResponse(data, mediaInfo) {
   }
   return streams;
 }
-
-// src/vidlink/index.js
 var QUALITY_ORDER = {
   "4K": 5,
   "1440p": 4,
@@ -457,4 +466,3 @@ function getStreams(tmdbId, mediaType = "movie", seasonNum = null, episodeNum = 
     }
   });
 }
-module.exports = { getStreams };

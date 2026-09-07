@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
 
 /**
  * @fileoverview Build and bundling pipeline for Nuvio providers.
@@ -6,9 +6,9 @@
  * standalone Hermes-compliant CommonJS bundles.
  */
 
-const fs = require('fs');
-const path = require('path');
-const esbuild = require('esbuild');
+import fs from 'fs';
+import path from 'path';
+import * as esbuild from 'esbuild';
 
 const SRC_DIR = path.join(__dirname, 'src');
 const OUT_DIR = path.join(__dirname, 'providers');
@@ -30,7 +30,7 @@ const EXTERNAL_MODULES = [
  *
  * @returns An array of provider directory names.
  */
-function getProvidersToBuild() {
+function getProvidersToBuild(): string[] {
   const args = process.argv.slice(2).filter(arg => !arg.startsWith('-'));
 
   if (args.length > 0) {
@@ -54,7 +54,7 @@ function getProvidersToBuild() {
  * @param providerName Directory name under src/
  * @returns Absolute path to the entry point, or null if none exists.
  */
-function getEntryPoint(providerName) {
+function getEntryPoint(providerName: string): string | null {
   const providerDir = path.join(SRC_DIR, providerName);
   const tsEntry = path.join(providerDir, 'index.ts');
   const jsEntry = path.join(providerDir, 'index.js');
@@ -71,7 +71,7 @@ function getEntryPoint(providerName) {
  * @param entryPoint The resolved entry point path.
  * @returns An esbuild BuildOptions object.
  */
-function getBuildConfig(providerName, entryPoint) {
+function getBuildConfig(providerName: string, entryPoint: string): esbuild.BuildOptions {
   const outFile = path.join(OUT_DIR, `${providerName}.js`);
   return {
     entryPoints: [entryPoint],
@@ -96,7 +96,7 @@ function getBuildConfig(providerName, entryPoint) {
  * @param providerName Name of the provider.
  * @returns A Promise resolving to true on success, false on failure.
  */
-async function buildProvider(providerName) {
+async function buildProvider(providerName: string): Promise<boolean> {
   const entryPoint = getEntryPoint(providerName);
   if (!entryPoint) {
     console.warn(
@@ -113,7 +113,7 @@ async function buildProvider(providerName) {
     const ext = path.extname(entryPoint);
     console.log(`✅ ${providerName}.js (${sizeKb} KB) [from ${ext}]`);
     return true;
-  } catch (err) {
+  } catch (err: any) {
     console.error(`❌ Failed to build ${providerName}:`, err.message);
     return false;
   }
@@ -124,7 +124,7 @@ async function buildProvider(providerName) {
  *
  * @param providers Array of provider names to watch.
  */
-async function watchProviders(providers) {
+async function watchProviders(providers: string[]): Promise<void> {
   console.log(`\n👀 Starting native esbuild watcher for ${providers.length} provider(s)...\n`);
 
   if (!fs.existsSync(OUT_DIR)) {

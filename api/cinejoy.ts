@@ -1,10 +1,5 @@
-/**
- * @fileoverview Vercel Serverless Function / Edge API for Cinejoy streaming.
- * Handles the binary gateway handshake on AWS Lambda / Node and exposes a clean JSON endpoint
- * for Nuvio's QuickJS runtime.
- */
-
-const { Readable } = require('stream');
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { Readable } from 'stream';
 
 const CINEJOY_ORIGIN = 'https://cinejoy.to';
 const CINEJOY_REFERER = 'https://cinejoy.to/';
@@ -14,7 +9,7 @@ const ENC_DEC_API_URL = 'https://enc-dec.app/api';
 
 const SERVERS = ['Lisbon', 'Solara', 'Nebula', 'Joy'];
 
-const CINEJOY_HEADERS = {
+const CINEJOY_HEADERS: Record<string, string> = {
   Accept: '*/*',
   Origin: CINEJOY_ORIGIN,
   Referer: CINEJOY_REFERER,
@@ -22,7 +17,7 @@ const CINEJOY_HEADERS = {
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
 };
 
-function getPlayerHeaders() {
+function getPlayerHeaders(): Record<string, string> {
   return {
     Accept: '*/*',
     Origin: CINEJOY_ORIGIN,
@@ -32,7 +27,12 @@ function getPlayerHeaders() {
   };
 }
 
-async function fetchSubtitles(mediaType, tmdbId, season, episode) {
+async function fetchSubtitles(
+  mediaType: string,
+  tmdbId: string,
+  season?: string,
+  episode?: string
+): Promise<any[]> {
   try {
     const typeParam = mediaType === 'tv' ? 'series' : 'movie';
     let url = `${SUBTITLES_API_URL}/subtitles?type=${typeParam}&tmdb=${encodeURIComponent(tmdbId)}`;
@@ -46,12 +46,12 @@ async function fetchSubtitles(mediaType, tmdbId, season, episode) {
     });
     if (!res.ok) return [];
 
-    const data = await res.json();
+    const data = (await res.json()) as any;
     if (!data?.subtitles || !Array.isArray(data.subtitles)) return [];
 
     return data.subtitles
-      .filter(sub => sub.url && typeof sub.url === 'string')
-      .map(sub => ({
+      .filter((sub: any) => sub.url && typeof sub.url === 'string')
+      .map((sub: any) => ({
         url: sub.url,
         language: sub.language || 'en',
         name: sub.display || sub.language || 'English',
@@ -62,7 +62,14 @@ async function fetchSubtitles(mediaType, tmdbId, season, episode) {
   }
 }
 
-async function extractServer(server, mediaType, tmdbId, season, episode, debugLogs) {
+async function extractServer(
+  server: string,
+  mediaType: string,
+  tmdbId: string,
+  season: string | undefined,
+  episode: string | undefined,
+  debugLogs: string[]
+): Promise<any[]> {
   try {
     const typeParam = mediaType === 'tv' ? 'series' : 'movie';
     let targetUrl = `${API_GATEWAY_URL}/?type=${typeParam}&tmdb=${encodeURIComponent(tmdbId)}&server=${encodeURIComponent(server)}`;
@@ -78,7 +85,7 @@ async function extractServer(server, mediaType, tmdbId, season, episode, debugLo
       return [];
     }
 
-    const encJson = await encRes.json();
+    const encJson = (await encRes.json()) as any;
     if (encJson.status !== 200 || !encJson.result) {
       debugLogs.push(`[${server}] encJson error: ${encJson.error || 'bad status'}`);
       return [];
@@ -113,7 +120,11 @@ async function extractServer(server, mediaType, tmdbId, season, episode, debugLo
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        text: gateBuffer.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''),
+        text: gateBuffer
+          .toString('base64')
+          .replace(/\+/g, '-')
+          .replace(/\//g, '_')
+          .replace(/=+$/, ''),
         state,
       }),
       signal: AbortSignal.timeout(6000),
@@ -123,14 +134,14 @@ async function extractServer(server, mediaType, tmdbId, season, episode, debugLo
       return [];
     }
 
-    const decJson = await decRes.json();
+    const decJson = (await decRes.json()) as any;
     if (decJson.status !== 200 || !decJson.result?.data?.stream) {
       debugLogs.push(`[${server}] decJson error: ${decJson.error || 'no stream'}`);
       return [];
     }
 
     const streamList = decJson.result.data.stream;
-    const streams = [];
+    const streams: any[] = [];
     for (const item of streamList) {
       const streamUrl = item.playlist || item.url;
       if (!streamUrl) continue;
@@ -148,13 +159,13 @@ async function extractServer(server, mediaType, tmdbId, season, episode, debugLo
 
     debugLogs.push(`[${server}] found ${streams.length} streams`);
     return streams;
-  } catch (err) {
+  } catch (err: any) {
     debugLogs.push(`[${server}] error: ${err.message}`);
     return [];
   }
 }
 
-async function handler(req, res) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -164,10 +175,10 @@ async function handler(req, res) {
   }
 
   // --- HLS Stream & Segment Proxy ---
-  if (req.query.hls === '1' && req.query.url) {
+  if (req.query.hls === '1' && typeof req.query.url === 'string') {
     const targetUrl = req.query.url;
     try {
-      const upstreamHeaders = {
+      const upstreamHeaders: Record<string, string> = {
         Accept: '*/*',
         Origin: CINEJOY_ORIGIN,
         Referer: CINEJOY_REFERER,
@@ -175,7 +186,9 @@ async function handler(req, res) {
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
       };
       if (req.headers['range']) {
-        upstreamHeaders['Range'] = req.headers['range'];
+        upstreamHeaders['Range'] = Array.isArray(req.headers['range'])
+          ? req.headers['range'][0]
+          : req.headers['range'];
       }
 
       const upstreamRes = await fetch(targetUrl, {
@@ -195,19 +208,24 @@ async function handler(req, res) {
 
       if (isM3U8) {
         const text = await upstreamRes.text();
-        const host = req.headers['x-forwarded-host'] || req.headers.host || 'nuvio-providers-rose.vercel.app';
-        const proto = req.headers['x-forwarded-proto'] || 'https';
+        const forwardedHost = req.headers['x-forwarded-host'];
+        const host = Array.isArray(forwardedHost)
+          ? forwardedHost[0]
+          : forwardedHost || req.headers.host || 'nuvio-providers-rose.vercel.app';
+
+        const forwardedProto = req.headers['x-forwarded-proto'];
+        const proto = Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto || 'https';
         const proxyBase = `${proto}://${host}/api/cinejoy?hls=1&url=`;
 
         const rewritten = text
           .split('\n')
-          .map(line => {
+          .map((line: string) => {
             const trimmed = line.trim();
             if (!trimmed) return line;
 
             // Handle #EXT-X-MAP:URI="..."
             if (trimmed.startsWith('#EXT-X-MAP:')) {
-              return line.replace(/URI="([^"]+)"/, (match, uri) => {
+              return line.replace(/URI="([^"]+)"/, (match: string, uri: string) => {
                 const absUri = new URL(uri, targetUrl).toString();
                 return `URI="${proxyBase}${encodeURIComponent(absUri)}&ext=.mp4"`;
               });
@@ -215,7 +233,7 @@ async function handler(req, res) {
 
             // Handle #EXT-X-MEDIA:...URI="..."
             if (trimmed.startsWith('#EXT-X-MEDIA:')) {
-              return line.replace(/URI="([^"]+)"/, (match, uri) => {
+              return line.replace(/URI="([^"]+)"/, (match: string, uri: string) => {
                 const absUri = new URL(uri, targetUrl).toString();
                 return `URI="${proxyBase}${encodeURIComponent(absUri)}"`;
               });
@@ -260,16 +278,19 @@ async function handler(req, res) {
       res.setHeader('Content-Type', contentType);
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Access-Control-Allow-Headers', 'Range, *');
-      res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Range, Accept-Ranges');
+      res.setHeader(
+        'Access-Control-Expose-Headers',
+        'Content-Length, Content-Range, Accept-Ranges'
+      );
 
       if (upstreamRes.headers.has('content-length')) {
-        res.setHeader('Content-Length', upstreamRes.headers.get('content-length'));
+        res.setHeader('Content-Length', upstreamRes.headers.get('content-length') as string);
       }
       if (upstreamRes.headers.has('content-range')) {
-        res.setHeader('Content-Range', upstreamRes.headers.get('content-range'));
+        res.setHeader('Content-Range', upstreamRes.headers.get('content-range') as string);
       }
       if (upstreamRes.headers.has('accept-ranges')) {
-        res.setHeader('Accept-Ranges', upstreamRes.headers.get('accept-ranges'));
+        res.setHeader('Accept-Ranges', upstreamRes.headers.get('accept-ranges') as string);
       }
       res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
 
@@ -278,8 +299,12 @@ async function handler(req, res) {
       }
 
       res.status(upstreamRes.status);
-      return Readable.fromWeb(upstreamRes.body).pipe(res);
-    } catch (e) {
+      if (upstreamRes.body) {
+        return Readable.fromWeb(upstreamRes.body as any).pipe(res as any);
+      } else {
+        return res.status(500).send('No upstream body');
+      }
+    } catch (e: any) {
       return res.status(502).send(`Proxy error: ${e.message}`);
     }
   }
@@ -288,13 +313,15 @@ async function handler(req, res) {
 
   if (test === 'true') {
     try {
-      const sResp = await fetch('https://api.shegu.st/servers', { headers: { ...CINEJOY_HEADERS } });
+      const sResp = await fetch('https://api.shegu.st/servers', {
+        headers: { ...CINEJOY_HEADERS },
+      });
       const text = await sResp.text();
       return res.status(200).json({
         sheguStatus: sResp.status,
         sheguBody: text.slice(0, 200),
       });
-    } catch (e) {
+    } catch (e: any) {
       return res.status(500).json({ error: e.message });
     }
   }
@@ -303,19 +330,31 @@ async function handler(req, res) {
     return res.status(400).json({ error: 'Missing required query parameter "tmdb"' });
   }
 
-  const debugLogs = [];
+  const tmdbStr = Array.isArray(tmdb) ? tmdb[0] : tmdb;
+  const typeStr = Array.isArray(type) ? type[0] : type;
+  const seasonStr = Array.isArray(season) ? season[0] : season;
+  const episodeStr = Array.isArray(episode) ? episode[0] : episode;
+
+  const debugLogs: string[] = [];
 
   try {
     const [subtitles, ...serverResults] = await Promise.all([
-      fetchSubtitles(type, tmdb, season, episode),
-      ...SERVERS.map(server => extractServer(server, type, tmdb, season, episode, debugLogs)),
+      fetchSubtitles(typeStr, tmdbStr, seasonStr, episodeStr),
+      ...SERVERS.map(server =>
+        extractServer(server, typeStr, tmdbStr, seasonStr, episodeStr, debugLogs)
+      ),
     ]);
 
-    const allStreams = [];
-    const host = req.headers['x-forwarded-host'] || req.headers.host || 'nuvio-providers-rose.vercel.app';
-    const proto = req.headers['x-forwarded-proto'] || 'https';
+    const allStreams: any[] = [];
+    const forwardedHost = req.headers['x-forwarded-host'];
+    const host = Array.isArray(forwardedHost)
+      ? forwardedHost[0]
+      : forwardedHost || req.headers.host || 'nuvio-providers-rose.vercel.app';
 
-    // 1. Primary: Fast Edge-Proxied Streams (Fixes ISP blocks, missing player headers & MIME types)
+    const forwardedProto = req.headers['x-forwarded-proto'];
+    const proto = Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto || 'https';
+
+    // 1. Primary: Fast Edge-Proxied Streams
     for (const sList of serverResults) {
       for (const s of sList) {
         const is4K = s.quality === '4K';
@@ -336,7 +375,7 @@ async function handler(req, res) {
       }
     }
 
-    // 2. Secondary: Direct CDN Streams (Fallback)
+    // 2. Secondary: Direct CDN Streams
     for (const sList of serverResults) {
       for (const s of sList) {
         const is4K = s.quality === '4K';
@@ -361,7 +400,7 @@ async function handler(req, res) {
       streams: allStreams,
       ...(debug === 'true' ? { debug: debugLogs } : {}),
     });
-  } catch (error) {
+  } catch (error: any) {
     return res.status(500).json({
       success: false,
       error: error.message,
@@ -369,6 +408,3 @@ async function handler(req, res) {
     });
   }
 }
-
-module.exports = handler;
-module.exports.default = handler;
