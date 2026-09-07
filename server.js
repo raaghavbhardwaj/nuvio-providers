@@ -22,6 +22,10 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify(data));
       return res;
     };
+    res.send = (data) => {
+      res.end(data);
+      return res;
+    };
     return cinejoyHandler(req, res);
   }
 

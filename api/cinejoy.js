@@ -4,6 +4,8 @@
  * for Nuvio's QuickJS runtime.
  */
 
+const { Readable } = require('stream');
+
 const CINEJOY_ORIGIN = 'https://cinejoy.to';
 const CINEJOY_REFERER = 'https://cinejoy.to/';
 const API_GATEWAY_URL = 'https://api.shegu.st';
@@ -161,11 +163,132 @@ async function handler(req, res) {
     return res.status(200).end();
   }
 
+  // --- HLS Stream & Segment Proxy ---
+  if (req.query.hls === '1' && req.query.url) {
+    const targetUrl = req.query.url;
+    try {
+      const upstreamHeaders = {
+        Accept: '*/*',
+        Origin: CINEJOY_ORIGIN,
+        Referer: CINEJOY_REFERER,
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
+      };
+      if (req.headers['range']) {
+        upstreamHeaders['Range'] = req.headers['range'];
+      }
+
+      const upstreamRes = await fetch(targetUrl, {
+        headers: upstreamHeaders,
+        signal: AbortSignal.timeout(15000),
+      });
+
+      if (!upstreamRes.ok && upstreamRes.status !== 206) {
+        return res.status(upstreamRes.status).send(`Upstream error: ${upstreamRes.status}`);
+      }
+
+      const upstreamContentType = (upstreamRes.headers.get('content-type') || '').toLowerCase();
+      const isM3U8 =
+        targetUrl.includes('.m3u8') ||
+        upstreamContentType.includes('mpegurl') ||
+        upstreamContentType.includes('application/x-mpegurl');
+
+      if (isM3U8) {
+        const text = await upstreamRes.text();
+        const host = req.headers['x-forwarded-host'] || req.headers.host || 'nuvio-providers-rose.vercel.app';
+        const proto = req.headers['x-forwarded-proto'] || 'https';
+        const proxyBase = `${proto}://${host}/api/cinejoy?hls=1&url=`;
+
+        const rewritten = text
+          .split('\n')
+          .map(line => {
+            const trimmed = line.trim();
+            if (!trimmed) return line;
+
+            // Handle #EXT-X-MAP:URI="..."
+            if (trimmed.startsWith('#EXT-X-MAP:')) {
+              return line.replace(/URI="([^"]+)"/, (match, uri) => {
+                const absUri = new URL(uri, targetUrl).toString();
+                return `URI="${proxyBase}${encodeURIComponent(absUri)}&ext=.mp4"`;
+              });
+            }
+
+            // Handle #EXT-X-MEDIA:...URI="..."
+            if (trimmed.startsWith('#EXT-X-MEDIA:')) {
+              return line.replace(/URI="([^"]+)"/, (match, uri) => {
+                const absUri = new URL(uri, targetUrl).toString();
+                return `URI="${proxyBase}${encodeURIComponent(absUri)}"`;
+              });
+            }
+
+            // Keep comments/tags intact
+            if (trimmed.startsWith('#')) return line;
+
+            // Media playlist or segment URL
+            const absUrl = new URL(trimmed, targetUrl).toString();
+            if (absUrl.includes('.m3u8')) {
+              return `${proxyBase}${encodeURIComponent(absUrl)}`;
+            }
+            const isFmp4 =
+              absUrl.includes('movieboxnoob.cc/video') ||
+              absUrl.includes('movieboxnoob.cc/hls') ||
+              absUrl.includes('bright67.online');
+            const segExt = isFmp4 ? '.m4s' : '.ts';
+            return `${proxyBase}${encodeURIComponent(absUrl)}&ext=${segExt}`;
+          })
+          .join('\n');
+
+        res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+        return res.status(200).send(rewritten);
+      }
+
+      // Video segment (chunk) streaming
+      let contentType = 'video/mp2t';
+      if (
+        req.query.ext === '.m4s' ||
+        req.query.ext === '.mp4' ||
+        targetUrl.includes('init') ||
+        targetUrl.includes('.mp4') ||
+        targetUrl.includes('video_') ||
+        targetUrl.includes('.h265')
+      ) {
+        contentType = 'video/mp4';
+      }
+
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Headers', 'Range, *');
+      res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Range, Accept-Ranges');
+
+      if (upstreamRes.headers.has('content-length')) {
+        res.setHeader('Content-Length', upstreamRes.headers.get('content-length'));
+      }
+      if (upstreamRes.headers.has('content-range')) {
+        res.setHeader('Content-Range', upstreamRes.headers.get('content-range'));
+      }
+      if (upstreamRes.headers.has('accept-ranges')) {
+        res.setHeader('Accept-Ranges', upstreamRes.headers.get('accept-ranges'));
+      }
+      res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
+
+      if (req.method === 'HEAD') {
+        return res.status(upstreamRes.status).end();
+      }
+
+      res.status(upstreamRes.status);
+      return Readable.fromWeb(upstreamRes.body).pipe(res);
+    } catch (e) {
+      return res.status(502).send(`Proxy error: ${e.message}`);
+    }
+  }
+
   const { tmdb, type = 'movie', season, episode, test, debug } = req.query;
 
   if (test === 'true') {
     try {
-      const sResp = await fetch('https://api.shegu.st/servers', { headers: CINEJOY_HEADERS });
+      const sResp = await fetch('https://api.shegu.st/servers', { headers: { ...CINEJOY_HEADERS } });
       const text = await sResp.text();
       return res.status(200).json({
         sheguStatus: sResp.status,
@@ -189,10 +312,45 @@ async function handler(req, res) {
     ]);
 
     const allStreams = [];
+    const host = req.headers['x-forwarded-host'] || req.headers.host || 'nuvio-providers-rose.vercel.app';
+    const proto = req.headers['x-forwarded-proto'] || 'https';
+
+    // 1. Primary: Fast Edge-Proxied Streams (Fixes ISP blocks, missing player headers & MIME types)
     for (const sList of serverResults) {
       for (const s of sList) {
+        const is4K = s.quality === '4K';
+        const serverMatch = s.title.match(/\[(.*?)\]/);
+        const serverName = serverMatch ? serverMatch[1] : 'Server';
+        const proxyUrl = `${proto}://${host}/api/cinejoy?hls=1&url=${encodeURIComponent(s.url)}`;
+
         allStreams.push({
-          ...s,
+          name: 'Cinejoy',
+          title: `Cinejoy [${serverName}] - ${is4K ? '4K/1080p' : '1080p'} [Proxy]`,
+          url: proxyUrl,
+          quality: s.quality,
+          format: 'm3u8',
+          provider: 'cinejoy',
+          headers: getPlayerHeaders(),
+          subtitles,
+        });
+      }
+    }
+
+    // 2. Secondary: Direct CDN Streams (Fallback)
+    for (const sList of serverResults) {
+      for (const s of sList) {
+        const is4K = s.quality === '4K';
+        const serverMatch = s.title.match(/\[(.*?)\]/);
+        const serverName = serverMatch ? serverMatch[1] : 'Server';
+
+        allStreams.push({
+          name: 'Cinejoy',
+          title: `Cinejoy [${serverName}] - ${is4K ? '4K/1080p' : '1080p'} [Direct]`,
+          url: s.url,
+          quality: s.quality,
+          format: 'm3u8',
+          provider: 'cinejoy',
+          headers: getPlayerHeaders(),
           subtitles,
         });
       }
