@@ -1,3 +1,4 @@
+import { fetchProxy } from './utils';
 import cheerio from 'cheerio-without-node-native';
 import { HEADERS } from './constants.js';
 import {
@@ -17,10 +18,10 @@ export async function getStreams(tmdbId: string, mediaType: string, seasonNum: n
 
   const mainUrl = await getMainUrl();
   const query = details.title;
-  const searchUrl = `${mainUrl}/?s=${encodeURIComponent(query)}`;
+  console.log('Fetching', mainUrl); const searchUrl = `${mainUrl}/?s=${encodeURIComponent(query)}`;
 
   try {
-    const searchRes = await fetch(searchUrl, {
+    const searchRes = await fetchProxy(searchUrl, {
       headers: {
         ...HEADERS,
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -51,7 +52,7 @@ export async function getStreams(tmdbId: string, mediaType: string, seasonNum: n
       return [];
     }
 
-    const pageRes = await fetch(targetUrl, {
+    const pageRes = await fetchProxy(targetUrl, {
       headers: {
         ...HEADERS,
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -157,7 +158,7 @@ export async function getStreams(tmdbId: string, mediaType: string, seasonNum: n
 
     return finalResults;
   } catch (e) {
-    console.error('[UHDMovies] Error:', (e as Error).message);
+    console.error('[UHDMovies] Error:', e);
     return [];
   }
 }

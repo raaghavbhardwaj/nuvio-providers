@@ -1,3 +1,4 @@
+// @ts-nocheck
 import cheerio from 'cheerio-without-node-native';
 import { HEADERS, MAIN_URL } from './constants.js';
 import {
@@ -66,8 +67,8 @@ async function getDownloadLinks(mediaUrl) {
 
     const initialLinks = [
       ...new Set([
-        ...qualityLinks.map((i, el) => $(el).attr('href')).get(),
-        ...bodyLinks.map((i, el) => $(el).attr('href')).get(),
+        ...qualityLinks.map((i: number, el: any) => $(el).attr('href')).get(),
+        ...bodyLinks.map((i: number, el: any) => $(el).attr('href')).get(),
       ]),
     ];
 
@@ -93,7 +94,7 @@ async function getDownloadLinks(mediaUrl) {
       const $el = $(element);
       const text = $el.text();
       const anchors = $el.find('a');
-      const links = anchors.map((i2, a) => $(a).attr('href')).get();
+      const links = anchors.map((i2: number, a: any) => $(a).attr('href')).get();
 
       const isDirectLinkBlock = anchors.get().some(a =>
         $(a)
@@ -115,7 +116,7 @@ async function getDownloadLinks(mediaUrl) {
         while (nextElement.length && nextElement.get(0).tagName !== 'hr') {
           const siblingLinks = nextElement
             .find('a[href]')
-            .map((i2, a) => $(a).attr('href'))
+            .map((i2: number, a: any) => $(a).attr('href'))
             .get();
           episodeLinksMap.get(epNum).push(...siblingLinks);
           nextElement = nextElement.next();
@@ -125,14 +126,14 @@ async function getDownloadLinks(mediaUrl) {
 
     if (directLinkBlocks.length > 0) {
       await Promise.all(
-        directLinkBlocks.map(async blockUrl => {
+        directLinkBlocks.map(async (blockUrl: string) => {
           try {
             const resolvedUrl = await getRedirectLinks(blockUrl);
             if (!resolvedUrl) return;
             const blockRes = await fetch(resolvedUrl, { headers: HEADERS });
             const blockData = await blockRes.text();
             const $$ = cheerio.load(blockData);
-            $$('h5 a, h4 a, h3 a').each((i, el) => {
+            $$('h5 a, h4 a, h3 a').each((i: number, el: any) => {
               const linkText = $$(el).text();
               const linkHref = $$(el).attr('href');
               const epMatch = linkText.match(/Episode\s*(\d+)/i);
@@ -154,10 +155,10 @@ async function getDownloadLinks(mediaUrl) {
     });
 
     const results = await Promise.all(
-      initialLinks.map(async linkInfo => {
+      initialLinks.map(async (linkInfo: any) => {
         try {
           const extracted = await loadExtractor(linkInfo.url, mediaUrl);
-          return extracted.map(ext => ({ ...ext, episode: linkInfo.episode }));
+          return extracted.map((ext: any) => ({ ...ext, episode: linkInfo.episode }));
         } catch (e) {
           return [];
         }
@@ -177,7 +178,7 @@ async function getDownloadLinks(mediaUrl) {
   }
 }
 
-async function getStreams(tmdbId, mediaType = 'movie', season = null, episode = null) {
+export async function getStreams(tmdbId: string, mediaType: string = 'movie', season: any = null, episode: any = null) {
   console.log(`[HDHub4u] Fetching streams for TMDB ID: ${tmdbId}, Type: ${mediaType}`);
   try {
     const mediaInfo = await getTMDBDetails(tmdbId, mediaType);
@@ -234,7 +235,7 @@ async function getStreams(tmdbId, mediaType = 'movie', season = null, episode = 
       (a, b) => (qualityOrder[b.quality] || -3) - (qualityOrder[a.quality] || -3)
     );
   } catch (error) {
-    console.error(`[HDHub4u] Scraping error: ${error.message}`);
+    console.error(`[HDHub4u] Scraping error: ${(error as Error).message}`);
     return [];
   }
 }

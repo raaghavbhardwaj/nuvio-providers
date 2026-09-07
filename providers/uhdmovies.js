@@ -1,6 +1,6 @@
 /**
  * uhdmovies - Built from src/uhdmovies/
- * Generated: 2026-09-07T18:22:00.568Z
+ * Generated: 2026-09-07T18:35:20.558Z
  */
 "use strict";
 var __create = Object.create;
@@ -74,7 +74,9 @@ __export(uhdmovies_exports, {
   getStreams: () => getStreams
 });
 module.exports = __toCommonJS(uhdmovies_exports);
-var import_cheerio_without_node_native2 = __toESM(require("cheerio-without-node-native"));
+
+// src/uhdmovies/utils.ts
+var import_cheerio_without_node_native = __toESM(require("cheerio-without-node-native"));
 
 // src/uhdmovies/constants.ts
 var DOMAINS_URL = "https://raw.githubusercontent.com/phisher98/TVVVV/refs/heads/main/domains.json";
@@ -91,14 +93,13 @@ var HEADERS = {
 };
 
 // src/uhdmovies/utils.ts
-var import_cheerio_without_node_native = __toESM(require("cheerio-without-node-native"));
 var cachedDomain = "";
 function getMainUrl() {
   return __async(this, null, function* () {
     if (cachedDomain)
       return cachedDomain;
     try {
-      const response = yield fetch(DOMAINS_URL, { headers: { "User-Agent": "Mozilla/5.0" } });
+      const response = yield fetchProxy(DOMAINS_URL, { headers: { "User-Agent": "Mozilla/5.0" } });
       const data = yield response.json();
       cachedDomain = data["UHDMovies"] || FALLBACK_DOMAIN;
       return cachedDomain;
@@ -130,7 +131,7 @@ function bypassHrefli(url) {
   return __async(this, null, function* () {
     const host = getBaseUrl(url);
     try {
-      const res1 = yield fetch(url, { headers: HEADERS });
+      const res1 = yield fetchProxy(url, { headers: HEADERS });
       const html1 = yield res1.text();
       const $1 = import_cheerio_without_node_native.default.load(html1);
       const formUrl1 = $1("form#landing").attr("action");
@@ -138,7 +139,7 @@ function bypassHrefli(url) {
       $1("form#landing input").each((_, el) => {
         formData1[$1(el).attr("name")] = $1(el).attr("value") || "";
       });
-      const res2 = yield fetch(formUrl1, {
+      const res2 = yield fetchProxy(formUrl1, {
         method: "POST",
         headers: __spreadProps(__spreadValues({}, HEADERS), { "Content-Type": "application/x-www-form-urlencoded" }),
         body: new URLSearchParams(formData1).toString()
@@ -150,7 +151,7 @@ function bypassHrefli(url) {
       $2("form#landing input").each((_, el) => {
         formData2[$2(el).attr("name")] = $2(el).attr("value") || "";
       });
-      const res3 = yield fetch(formUrl2, {
+      const res3 = yield fetchProxy(formUrl2, {
         method: "POST",
         headers: __spreadProps(__spreadValues({}, HEADERS), { "Content-Type": "application/x-www-form-urlencoded" }),
         body: new URLSearchParams(formData2).toString()
@@ -163,7 +164,7 @@ function bypassHrefli(url) {
         return null;
       const skToken = skTokenMatch[1];
       const wpHttp2 = formData2["_wp_http2"] || "";
-      const res4 = yield fetch(`${host}?go=${skToken}`, {
+      const res4 = yield fetchProxy(`${host}?go=${skToken}`, {
         headers: __spreadProps(__spreadValues({}, HEADERS), { Cookie: `${skToken}=${wpHttp2}` })
       });
       const html4 = yield res4.text();
@@ -173,7 +174,7 @@ function bypassHrefli(url) {
       if (!driveUrlMatch)
         return null;
       const driveUrl = driveUrlMatch[1];
-      const res5 = yield fetch(driveUrl, { headers: HEADERS });
+      const res5 = yield fetchProxy(driveUrl, { headers: HEADERS });
       const html5 = yield res5.text();
       const pathMatch = html5.match(/replace\("([^"]+)"\)/);
       if (!pathMatch || pathMatch[1] === "/404")
@@ -189,7 +190,7 @@ function fetchTmdbDetails(tmdbId, mediaType) {
     var _a;
     try {
       const url = `${TMDB_BASE_URL}/${mediaType}/${tmdbId}?api_key=${TMDB_API_KEY}&append_to_response=external_ids`;
-      const res = yield fetch(url, {
+      const res = yield fetchProxy(url, {
         headers: {
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
           Accept: "application/json"
@@ -224,7 +225,7 @@ function extractVideoSeed(finallink) {
       const token = finallink.split("?url=")[1];
       if (!token)
         return null;
-      const res = yield fetch(`https://${host}/api`, {
+      const res = yield fetchProxy(`https://${host}/api`, {
         method: "POST",
         headers: __spreadProps(__spreadValues({}, HEADERS), {
           "Content-Type": "application/x-www-form-urlencoded",
@@ -247,14 +248,14 @@ function extractDriveseedPage(url) {
     try {
       let pageUrl = url;
       if (url.includes("r?key=")) {
-        const res2 = yield fetch(url, { headers: HEADERS });
+        const res2 = yield fetchProxy(url, { headers: HEADERS });
         const html2 = yield res2.text();
         const redirectMatch = html2.match(/replace\("([^"]+)"\)/);
         if (redirectMatch) {
           pageUrl = getBaseUrl(url) + redirectMatch[1];
         }
       }
-      const res = yield fetch(pageUrl, { headers: HEADERS });
+      const res = yield fetchProxy(pageUrl, { headers: HEADERS });
       const html = yield res.text();
       const $ = import_cheerio_without_node_native.default.load(html);
       const baseDomain = getBaseUrl(pageUrl);
@@ -268,7 +269,7 @@ function extractDriveseedPage(url) {
         if (!href)
           continue;
         if (text.includes("instant download")) {
-          const instantRes = yield fetch(href, { headers: HEADERS, redirect: "follow" });
+          const instantRes = yield fetchProxy(href, { headers: HEADERS, redirect: "follow" });
           if (instantRes.url && instantRes.url.includes("url=")) {
             streams.push({
               name: "Driveseed Instant",
@@ -278,7 +279,7 @@ function extractDriveseedPage(url) {
             });
           }
         } else if (text.includes("resume cloud")) {
-          const cloudRes = yield fetch(baseDomain + href, { headers: HEADERS });
+          const cloudRes = yield fetchProxy(baseDomain + href, { headers: HEADERS });
           const cloudHtml = yield cloudRes.text();
           const link = import_cheerio_without_node_native.default.load(cloudHtml)("a.btn-success").first().attr("href");
           if (link)
@@ -292,8 +293,15 @@ function extractDriveseedPage(url) {
     return streams;
   });
 }
+function fetchProxy(_0) {
+  return __async(this, arguments, function* (url, options = {}) {
+    const proxyUrl = "https://nuvio-providers-rose.vercel.app/api/proxy?url=" + encodeURIComponent(url);
+    return fetch(proxyUrl, options);
+  });
+}
 
 // src/uhdmovies/index.ts
+var import_cheerio_without_node_native2 = __toESM(require("cheerio-without-node-native"));
 function getStreams(tmdbId, mediaType, seasonNum = 1, episodeNum = 1) {
   return __async(this, null, function* () {
     console.log(`[UHDMovies] Querying streams for TMDB: ${tmdbId}, Type: ${mediaType}`);
@@ -302,9 +310,10 @@ function getStreams(tmdbId, mediaType, seasonNum = 1, episodeNum = 1) {
       return [];
     const mainUrl = yield getMainUrl();
     const query = details.title;
+    console.log("Fetching", mainUrl);
     const searchUrl = `${mainUrl}/?s=${encodeURIComponent(query)}`;
     try {
-      const searchRes = yield fetch(searchUrl, {
+      const searchRes = yield fetchProxy(searchUrl, {
         headers: __spreadProps(__spreadValues({}, HEADERS), {
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         })
@@ -324,7 +333,7 @@ function getStreams(tmdbId, mediaType, seasonNum = 1, episodeNum = 1) {
         console.log("[UHDMovies] No search result found");
         return [];
       }
-      const pageRes = yield fetch(targetUrl, {
+      const pageRes = yield fetchProxy(targetUrl, {
         headers: __spreadProps(__spreadValues({}, HEADERS), {
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         })
@@ -416,7 +425,7 @@ function getStreams(tmdbId, mediaType, seasonNum = 1, episodeNum = 1) {
       }
       return finalResults;
     } catch (e) {
-      console.error("[UHDMovies] Error:", e.message);
+      console.error("[UHDMovies] Error:", e);
       return [];
     }
   });

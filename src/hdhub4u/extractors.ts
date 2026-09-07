@@ -1,3 +1,4 @@
+// @ts-nocheck
 import cheerio from 'cheerio-without-node-native';
 import CryptoJS from 'crypto-js';
 import { HEADERS, MAIN_URL } from './constants.js';
@@ -119,7 +120,7 @@ export async function hbLinksExtractor(url) {
     const data = await response.text();
     const $ = cheerio.load(data);
     const links = $('h3 a, h5 a, div.entry-content p a')
-      .map((i, el) => $(el).attr('href'))
+      .map((i: number, el: any) => $(el).attr('href'))
       .get();
     const results = await Promise.all(links.map(l => loadExtractor(l, url)));
     return results.flat().map(link => ({
@@ -317,7 +318,7 @@ export async function hubCdnExtractor(url, referer) {
     const $ = cheerio.load(data);
 
     let scriptContent = '';
-    $('script').each((i, el) => {
+    $('script').each((i: number, el: any) => {
       const html = $(el).html();
       if (html && html.includes('reurl')) {
         scriptContent = html;

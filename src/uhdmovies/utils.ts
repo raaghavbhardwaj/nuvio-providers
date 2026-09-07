@@ -6,7 +6,7 @@ let cachedDomain = '';
 export async function getMainUrl() {
   if (cachedDomain) return cachedDomain;
   try {
-    const response = await fetch(DOMAINS_URL, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+    const response = await fetchProxy(DOMAINS_URL, { headers: { 'User-Agent': 'Mozilla/5.0' } });
     const data = await response.json();
     cachedDomain = data['UHDMovies'] || FALLBACK_DOMAIN;
     return cachedDomain;
@@ -35,7 +35,7 @@ export function fixUrl(url: string, domain: string) {
 export async function bypassHrefli(url: string): Promise<string | null> {
   const host = getBaseUrl(url);
   try {
-    const res1 = await fetch(url, { headers: HEADERS });
+    const res1 = await fetchProxy(url, { headers: HEADERS });
     const html1 = await res1.text();
     const $1 = cheerio.load(html1);
     const formUrl1 = $1('form#landing').attr('action');
@@ -44,7 +44,7 @@ export async function bypassHrefli(url: string): Promise<string | null> {
       formData1[$1(el).attr('name') as string] = $1(el).attr('value') || '';
     });
 
-    const res2 = await fetch(formUrl1, {
+    const res2 = await fetchProxy(formUrl1, {
       method: 'POST',
       headers: { ...HEADERS, 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams(formData1).toString(),
@@ -57,7 +57,7 @@ export async function bypassHrefli(url: string): Promise<string | null> {
       formData2[$2(el).attr('name') as string] = $2(el).attr('value') || '';
     });
 
-    const res3 = await fetch(formUrl2, {
+    const res3 = await fetchProxy(formUrl2, {
       method: 'POST',
       headers: { ...HEADERS, 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams(formData2).toString(),
@@ -70,7 +70,7 @@ export async function bypassHrefli(url: string): Promise<string | null> {
     const skToken = skTokenMatch[1];
     const wpHttp2 = formData2['_wp_http2'] || '';
 
-    const res4 = await fetch(`${host}?go=${skToken}`, {
+    const res4 = await fetchProxy(`${host}?go=${skToken}`, {
       headers: { ...HEADERS, Cookie: `${skToken}=${wpHttp2}` },
     });
     const html4 = await res4.text();
@@ -80,7 +80,7 @@ export async function bypassHrefli(url: string): Promise<string | null> {
     if (!driveUrlMatch) return null;
     const driveUrl = driveUrlMatch[1];
 
-    const res5 = await fetch(driveUrl, { headers: HEADERS });
+    const res5 = await fetchProxy(driveUrl, { headers: HEADERS });
     const html5 = await res5.text();
     const pathMatch = html5.match(/replace\("([^"]+)"\)/);
     if (!pathMatch || pathMatch[1] === '/404') return null;
@@ -93,7 +93,7 @@ export async function bypassHrefli(url: string): Promise<string | null> {
 export async function fetchTmdbDetails(tmdbId: string, mediaType: string): Promise<any> {
   try {
     const url = `${TMDB_BASE_URL}/${mediaType}/${tmdbId}?api_key=${TMDB_API_KEY}&append_to_response=external_ids`;
-    const res = await fetch(url, {
+    const res = await fetchProxy(url, {
       headers: {
         'User-Agent':
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -127,7 +127,7 @@ export async function extractVideoSeed(finallink: string): Promise<any> {
     const token = finallink.split('?url=')[1];
     if (!token) return null;
 
-    const res = await fetch(`https://${host}/api`, {
+    const res = await fetchProxy(`https://${host}/api`, {
       method: 'POST',
       headers: {
         ...HEADERS,
@@ -150,7 +150,7 @@ export async function extractDriveseedPage(url: string): Promise<any> {
   try {
     let pageUrl = url;
     if (url.includes('r?key=')) {
-      const res = await fetch(url, { headers: HEADERS });
+      const res = await fetchProxy(url, { headers: HEADERS });
       const html = await res.text();
       const redirectMatch = html.match(/replace\("([^"]+)"\)/);
       if (redirectMatch) {
@@ -158,7 +158,7 @@ export async function extractDriveseedPage(url: string): Promise<any> {
       }
     }
 
-    const res = await fetch(pageUrl, { headers: HEADERS });
+    const res = await fetchProxy(pageUrl, { headers: HEADERS });
     const html = await res.text();
     const $ = cheerio.load(html);
     const baseDomain = getBaseUrl(pageUrl);
@@ -174,7 +174,7 @@ export async function extractDriveseedPage(url: string): Promise<any> {
       if (!href) continue;
 
       if (text.includes('instant download')) {
-        const instantRes = await fetch(href, { headers: HEADERS, redirect: 'follow' });
+        const instantRes = await fetchProxy(href, { headers: HEADERS, redirect: 'follow' });
         if (instantRes.url && instantRes.url.includes('url=')) {
           streams.push({
             name: 'Driveseed Instant',
@@ -184,7 +184,7 @@ export async function extractDriveseedPage(url: string): Promise<any> {
           });
         }
       } else if (text.includes('resume cloud')) {
-        const cloudRes = await fetch(baseDomain + href, { headers: HEADERS });
+        const cloudRes = await fetchProxy(baseDomain + href, { headers: HEADERS });
         const cloudHtml = await cloudRes.text();
         const link = cheerio.load(cloudHtml)('a.btn-success').first().attr('href');
         if (link) streams.push({ name: 'Driveseed Cloud', url: link, quality, size });
@@ -194,4 +194,10 @@ export async function extractDriveseedPage(url: string): Promise<any> {
     }
   } catch (e) {}
   return streams;
+}
+
+
+export async function fetchProxy(url: string, options: any = {}): Promise<Response> {
+  const proxyUrl = 'https://nuvio-providers-rose.vercel.app/api/proxy?url=' + encodeURIComponent(url);
+  return fetch(proxyUrl, options);
 }

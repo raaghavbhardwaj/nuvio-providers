@@ -1,3 +1,4 @@
+// @ts-nocheck
 import {
   DOMAINS_URL,
   DOMAIN_CACHE_TTL,
@@ -10,7 +11,7 @@ import {
 
 let domainCacheTimestamp = 0;
 
-export function formatBytes(bytes) {
+export function formatBytes(bytes: number): string {
   if (!bytes || bytes === 0) return 'Unknown';
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
@@ -18,7 +19,7 @@ export function formatBytes(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
-export function extractServerName(source) {
+export function extractServerName(source: string): string {
   if (!source) return 'Unknown';
   if (source.startsWith('HubCloud')) {
     const serverMatch = source.match(/HubCloud(?:\s*-\s*([^[\]]+))?/);
@@ -88,7 +89,7 @@ export function btoa(value) {
   return output;
 }
 
-export function cleanTitle(title) {
+export function cleanTitle(title: string): string {
   let name = title.replace(/\.[a-zA-Z0-9]{2,4}$/, '');
 
   const normalized = name
@@ -118,7 +119,7 @@ export function cleanTitle(title) {
   const hdrTags = new Set(['SDR', 'HDR', 'HDR10', 'HDR10+', 'DV', 'DOLBYVISION']);
 
   const filtered = parts
-    .map(part => {
+    .map((part: string) => {
       const p = part.toUpperCase();
       if (sourceTags.has(p)) return p;
       if (codecTags.has(p)) return p;
@@ -133,7 +134,7 @@ export function cleanTitle(title) {
   return [...new Set(filtered)].join(' ');
 }
 
-export function cleanDisplayTitle(raw) {
+export function cleanDisplayTitle(raw: string): string {
   if (!raw) return '';
   let name = raw.split('(')[0].trim().replace(/\s+/g, ' ');
   name = name.charAt(0).toUpperCase() + name.slice(1);
@@ -179,7 +180,7 @@ export async function fetchAndUpdateDomain() {
       }
     }
   } catch (error) {
-    console.error(`[HDHub4u] Failed to fetch latest domains: ${error.message}`);
+    console.error(`[HDHub4u] Failed to fetch latest domains: ${(error as Error).message}`);
   }
 }
 
@@ -203,23 +204,23 @@ export function calculateTitleSimilarity(title1, title2) {
   const norm1 = normalizeTitle(title1);
   const norm2 = normalizeTitle(title2);
   if (norm1 === norm2) return 1;
-  const words1 = norm1.split(/\s+/).filter(w => w.length > 0);
-  const words2 = norm2.split(/\s+/).filter(w => w.length > 0);
+  const words1 = norm1.split(/\s+/).filter((w: string) => w.length > 0);
+  const words2 = norm2.split(/\s+/).filter((w: string) => w.length > 0);
   if (words1.length === 0 || words2.length === 0) return 0;
   const set1 = new Set(words1);
   const set2 = new Set(words2);
-  const intersection = words1.filter(w => set2.has(w));
+  const intersection = words1.filter((w: string) => set2.has(w));
   const union = new Set([...words1, ...words2]);
   const jaccard = intersection.length / union.size;
-  const extraWordsCount = words2.filter(w => !set1.has(w)).length;
+  const extraWordsCount = words2.filter((w: string) => !set1.has(w)).length;
   let score = jaccard - extraWordsCount * 0.05;
-  if (words1.length > 0 && words1.every(w => set2.has(w))) {
+  if (words1.length > 0 && words1.every((w: string) => set2.has(w))) {
     score += 0.2;
   }
   return score;
 }
 
-export function findBestTitleMatch(mediaInfo, searchResults, mediaType, season) {
+export function findBestTitleMatch(mediaInfo: any, searchResults: any[], mediaType: string, season: any): any {
   if (!searchResults || searchResults.length === 0) return null;
   let bestMatch = null;
   let bestScore = 0;
@@ -268,7 +269,7 @@ export function findBestTitleMatch(mediaInfo, searchResults, mediaType, season) 
   return bestMatch;
 }
 
-export async function getTMDBDetails(tmdbId, mediaType) {
+export async function getTMDBDetails(tmdbId: string, mediaType: string): Promise<any> {
   const endpoint = mediaType === 'tv' ? 'tv' : 'movie';
   const url = `${TMDB_BASE_URL}/${endpoint}/${tmdbId}?api_key=${TMDB_API_KEY}&append_to_response=external_ids`;
   const response = await fetch(url, {
