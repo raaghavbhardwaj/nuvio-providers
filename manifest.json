@@ -3,16 +3,16 @@
   "version": "1.0.0",
   "scrapers": [
     {
-      "id": "cinejoy",
-      "name": "Cinejoy",
-      "description": "High quality streams (up to 4K HDR) with multi-server backup and synchronized subtitles from Cinejoy.to",
+      "id": "vidlink",
+      "name": "Vidlink",
+      "description": "Fast direct HLS streams (1080p, 720p, 480p, Auto) with multi-language subtitles for movies and TV shows.",
       "version": "1.0.0",
       "author": "raaghav",
       "supportedTypes": ["movie", "tv"],
-      "filename": "providers/cinejoy.js",
+      "filename": "providers/vidlink.js",
       "enabled": true,
       "formats": ["m3u8"],
-      "logo": "https://www.google.com/s2/favicons?domain=cinejoy.to&sz=128",
+      "logo": "https://www.google.com/s2/favicons?domain=vidlink.pro&sz=128",
       "contentLanguage": ["en"]
     }
   ]

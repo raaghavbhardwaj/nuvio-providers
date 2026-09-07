@@ -27,13 +27,29 @@ const CORS_HEADERS: Record<string, string> = {
   'Content-Type': 'application/json',
 };
 
-function base64urlEncode(uint8Array: Uint8Array): string {
-  let binary = '';
-  const len = uint8Array.length;
-  for (let i = 0; i < len; i++) {
-    binary += String.fromCharCode(uint8Array[i]);
+const B64_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+const B64_LOOKUP = new Uint8Array(256);
+for (let i = 0; i < B64_CHARS.length; i++) {
+  B64_LOOKUP[B64_CHARS.charCodeAt(i)] = i;
+}
+
+function base64urlEncode(bytes: Uint8Array): string {
+  let result = '';
+  const len = bytes.length;
+  for (let i = 0; i < len; i += 3) {
+    const b0 = bytes[i];
+    const b1 = i + 1 < len ? bytes[i + 1] : 0;
+    const b2 = i + 2 < len ? bytes[i + 2] : 0;
+    result += B64_CHARS[b0 >> 2];
+    result += B64_CHARS[((b0 & 3) << 4) | (b1 >> 4)];
+    if (i + 1 < len) {
+      result += B64_CHARS[((b1 & 15) << 2) | (b2 >> 6)];
+    }
+    if (i + 2 < len) {
+      result += B64_CHARS[b2 & 63];
+    }
   }
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return result.replace(/\+/g, '-').replace(/\//g, '_');
 }
 
 function base64urlDecode(base64url: string): Uint8Array {
@@ -41,10 +57,24 @@ function base64urlDecode(base64url: string): Uint8Array {
   while (base64.length % 4) {
     base64 += '=';
   }
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
+  const len = base64.length;
+  let placeHolders = 0;
+  if (base64[len - 1] === '=') placeHolders++;
+  if (base64[len - 2] === '=') placeHolders++;
+
+  const byteLen = (len * 3) / 4 - placeHolders;
+  const bytes = new Uint8Array(byteLen);
+
+  let p = 0;
+  for (let i = 0; i < len; i += 4) {
+    const encoded0 = B64_LOOKUP[base64.charCodeAt(i)];
+    const encoded1 = B64_LOOKUP[base64.charCodeAt(i + 1)];
+    const encoded2 = B64_LOOKUP[base64.charCodeAt(i + 2)];
+    const encoded3 = B64_LOOKUP[base64.charCodeAt(i + 3)];
+
+    bytes[p++] = (encoded0 << 2) | (encoded1 >> 4);
+    if (p < byteLen) bytes[p++] = ((encoded1 & 15) << 4) | (encoded2 >> 2);
+    if (p < byteLen) bytes[p++] = ((encoded2 & 3) << 6) | (encoded3 & 63);
   }
   return bytes;
 }
@@ -82,9 +112,7 @@ async function fetchSubtitles(
     const res = await fetch(url, { headers: CINEJOY_HEADERS });
     if (!res.ok) return [];
 
-    const data = (await res.json()) as {
-      subtitles?: Array<{ language?: string; display?: string; url?: string }>;
-    };
+    const data = (await res.json()) as { subtitles?: Array<{ language?: string; display?: string; url?: string }> };
     if (!data?.subtitles || !Array.isArray(data.subtitles)) return [];
 
     return data.subtitles
@@ -104,7 +132,8 @@ async function extractServer(
   mediaType: string,
   tmdbId: string,
   season: string | null,
-  episode: string | null
+  episode: string | null,
+  debugLogs: string[]
 ): Promise<Stream[]> {
   try {
     const typeParam = mediaType === 'tv' ? 'series' : 'movie';
@@ -116,16 +145,22 @@ async function extractServer(
     // 1. Sign request via helper API
     const encUrl = `${ENC_DEC_API_URL}/enc-cinejoy?url=${encodeURIComponent(targetUrl)}`;
     const encRes = await fetch(encUrl);
+    debugLogs.push(`[${server}] encRes status: ${encRes.status}`);
     if (!encRes.ok) return [];
 
     const encJson = (await encRes.json()) as {
       status: number;
       result?: { data: string; state: Record<string, unknown> };
+      error?: string;
     };
-    if (encJson.status !== 200 || !encJson.result) return [];
+    if (encJson.status !== 200 || !encJson.result) {
+      debugLogs.push(`[${server}] encJson error: ${encJson.error || 'bad status'}`);
+      return [];
+    }
 
     const { data, state } = encJson.result;
     const binaryPayload = base64urlDecode(data);
+    debugLogs.push(`[${server}] payload size: ${binaryPayload.length} bytes`);
 
     // 2. Dispatch to binary gateway
     const gateRes = await fetch(`${API_GATEWAY_URL}/g`, {
@@ -134,12 +169,17 @@ async function extractServer(
         ...CINEJOY_HEADERS,
         'Content-Type': 'application/octet-stream',
       },
-      body: binaryPayload.buffer,
+      body: binaryPayload,
     });
-    if (!gateRes.ok) return [];
+    if (!gateRes.ok) {
+      const errText = await gateRes.text();
+      debugLogs.push(`[${server}] gateRes ${gateRes.status} body: ${errText.slice(0, 150)}`);
+      return [];
+    }
 
     const gateArrayBuffer = await gateRes.arrayBuffer();
     const gateBytes = new Uint8Array(gateArrayBuffer);
+    debugLogs.push(`[${server}] gateBytes size: ${gateBytes.length} bytes`);
 
     // 3. Decrypt response
     const decRes = await fetch(`${ENC_DEC_API_URL}/dec-cinejoy`, {
@@ -150,14 +190,20 @@ async function extractServer(
         state,
       }),
     });
+    debugLogs.push(`[${server}] decRes status: ${decRes.status}`);
     if (!decRes.ok) return [];
 
     const decJson = (await decRes.json()) as {
       status: number;
       result?: { data?: { stream?: Array<{ playlist?: string; url?: string }> } };
+      error?: string;
     };
-    const streamList = decJson?.result?.data?.stream || [];
+    if (decJson.status !== 200 || !decJson.result?.data?.stream) {
+      debugLogs.push(`[${server}] decJson error: ${decJson.error || 'no stream'}`);
+      return [];
+    }
 
+    const streamList = decJson.result.data.stream;
     const streams: Stream[] = [];
     for (const item of streamList) {
       const streamUrl = item.playlist || item.url;
@@ -174,7 +220,9 @@ async function extractServer(
     }
 
     return streams;
-  } catch {
+  } catch (e) {
+    const errStr = e instanceof Error ? e.message : String(e);
+    debugLogs.push(`[${server}] exception: ${errStr}`);
     return [];
   }
 }
@@ -185,6 +233,8 @@ export async function onRequestGet(context: { request: Request }): Promise<Respo
   const mediaType = url.searchParams.get('type') || 'movie';
   const season = url.searchParams.get('season');
   const episode = url.searchParams.get('episode');
+  const debug = url.searchParams.get('debug') === 'true';
+
 
   if (!tmdbId) {
     return new Response(JSON.stringify({ error: 'Missing required query parameter "tmdb"' }), {
@@ -193,10 +243,12 @@ export async function onRequestGet(context: { request: Request }): Promise<Respo
     });
   }
 
+  const debugLogs: string[] = [];
+
   try {
     const [subtitles, ...serverResults] = await Promise.all([
       fetchSubtitles(mediaType, tmdbId, season, episode),
-      ...SERVERS.map(server => extractServer(server, mediaType, tmdbId, season, episode)),
+      ...SERVERS.map(server => extractServer(server, mediaType, tmdbId, season, episode, debugLogs)),
     ]);
 
     const allStreams: Stream[] = [];
@@ -209,13 +261,22 @@ export async function onRequestGet(context: { request: Request }): Promise<Respo
       }
     }
 
-    return new Response(JSON.stringify({ success: true, streams: allStreams }), {
+    const responsePayload: Record<string, unknown> = {
+      success: true,
+      streams: allStreams,
+    };
+
+    if (debug || allStreams.length === 0) {
+      responsePayload.debug = debugLogs;
+    }
+
+    return new Response(JSON.stringify(responsePayload), {
       status: 200,
       headers: CORS_HEADERS,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    return new Response(JSON.stringify({ error: message, streams: [] }), {
+    return new Response(JSON.stringify({ error: message, streams: [], debug: debugLogs }), {
       status: 500,
       headers: CORS_HEADERS,
     });
