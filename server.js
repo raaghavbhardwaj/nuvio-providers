@@ -1,38 +1,33 @@
 const http = require('http');
-const fs = require('fs');
 const path = require('path');
-const os = require('os');
+const fs = require('fs');
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-function getLocalIp() {
-  const interfaces = os.networkInterfaces();
-  for (const name of Object.keys(interfaces)) {
-    for (const iface of interfaces[name]) {
-      if (iface.family === 'IPv4' && !iface.internal) {
-        return iface.address;
-      }
-    }
+// Import our cinejoy handler
+const cinejoyModule = require('./api/cinejoy.js');
+const cinejoyHandler = cinejoyModule.default || cinejoyModule;
+
+const server = http.createServer(async (req, res) => {
+  const urlObj = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+
+  if (urlObj.pathname === '/api/cinejoy') {
+    req.query = Object.fromEntries(urlObj.searchParams.entries());
+    res.status = (code) => {
+      res.statusCode = code;
+      return res;
+    };
+    res.json = (data) => {
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify(data));
+      return res;
+    };
+    return cinejoyHandler(req, res);
   }
-  return 'localhost';
-}
 
-const mimeTypes = {
-  '.json': 'application/json',
-  '.js': 'application/javascript',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.ico': 'image/x-icon',
-  '.html': 'text/html',
-};
-
-const server = http.createServer((req, res) => {
-  console.log(`${req.method} ${req.url}`);
-
-  // Handle CORS
+  // Handle static files / manifest.json
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
     res.writeHead(200);
@@ -40,49 +35,22 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Prepare file path
-  let filePath = path.join(__dirname, req.url === '/' ? 'index.html' : req.url);
-
-  // Security check: prevent directory traversal
-  if (!filePath.startsWith(__dirname)) {
-    res.writeHead(403);
-    res.end('Forbidden');
-    return;
+  let filePath = path.join(__dirname, urlObj.pathname === '/' ? 'manifest.json' : urlObj.pathname);
+  if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+    const ext = path.extname(filePath);
+    const contentType = ext === '.json' ? 'application/json' : ext === '.js' ? 'application/javascript' : 'text/plain';
+    res.writeHead(200, { 'Content-Type': contentType });
+    fs.createReadStream(filePath).pipe(res);
+  } else {
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Not found' }));
   }
+});
 
-  const videoExtensions = ['.mp4', '.mkv', '.avi', '.mov'];
-
-  const extname = path.extname(filePath);
-  let contentType = mimeTypes[extname] || 'application/octet-stream';
-  if (videoExtensions.includes(extname)) {
-    contentType = 'video/mp4'; // Defaulting to mp4 for video files for simplicity
-  }
-
-  fs.readFile(filePath, (err, content) => {
-    if (err) {
-      if (err.code === 'ENOENT') {
-        // If asking for root and index.html doesn't exist, allow checking specific files
-        if (req.url === '/') {
-          res.writeHead(200, { 'Content-Type': 'text/plain' });
-          res.end('Nuvio Providers Server Running. Access /manifest.json to see the manifest.');
-          return;
-        }
-        res.writeHead(404);
-        res.end(`File not found: ${req.url}`);
-      } else {
-        res.writeHead(500);
-        res.end(`Server Error: ${err.code}`);
-      }
-    } else {
-      res.writeHead(200, { 'Content-Type': contentType });
-      res.end(content, 'utf-8');
-    }
+if (require.main === module) {
+  server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
   });
-});
+}
 
-server.listen(PORT, () => {
-  const ip = getLocalIp();
-  console.log(`\n🚀 Server running at: http://${ip}:${PORT}/`);
-  console.log(`📝 Manifest URL:      http://${ip}:${PORT}/manifest.json`);
-  console.log('Press Ctrl+C to stop\n');
-});
+module.exports = server;

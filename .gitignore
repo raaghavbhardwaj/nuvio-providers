@@ -119,3 +119,4 @@ mbox.kt
 
 .gemini/
 gha-creds-*.json
+.vercel

@@ -3,6 +3,19 @@
   "version": "1.0.0",
   "scrapers": [
     {
+      "id": "cinejoy",
+      "name": "Cinejoy",
+      "description": "Multi-server fast HLS streaming (1080p) with synchronized subtitles powered by Vercel edge proxy.",
+      "version": "1.0.0",
+      "author": "raaghav",
+      "supportedTypes": ["movie", "tv"],
+      "filename": "providers/cinejoy.js",
+      "enabled": true,
+      "formats": ["m3u8"],
+      "logo": "https://www.google.com/s2/favicons?domain=cinejoy.to&sz=128",
+      "contentLanguage": ["en"]
+    },
+    {
       "id": "vidlink",
       "name": "Vidlink",
       "description": "Fast direct HLS streams (1080p, 720p, 480p, Auto) with multi-language subtitles for movies and TV shows.",
