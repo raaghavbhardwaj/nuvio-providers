@@ -8,6 +8,7 @@ export const CINEJOY_REFERER = 'https://cinejoy.to/';
 export const API_GATEWAY_URL = 'https://api.shegu.st';
 export const SUBTITLES_API_URL = 'https://subtitles.shegu.st';
 export const ENC_DEC_API_URL = 'https://enc-dec.app/api';
+export const CINEJOY_EDGE_API = 'https://nuvio-providers.pages.dev/api/cinejoy';
 
 /**
  * Top fast and reliable server names supported by Cinejoy.

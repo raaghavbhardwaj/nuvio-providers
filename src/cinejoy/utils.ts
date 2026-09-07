@@ -5,25 +5,39 @@
 import type { MediaType, Subtitle } from '../../types/nuvio';
 import { CINEJOY_HEADERS, SUBTITLES_API_URL } from './constants';
 
-/**
- * Pure JavaScript Base64URL encoder (Hermes and React Native compatible).
- *
- * @param uint8Array Raw byte array.
- * @returns URL-safe Base64 string without padding.
- */
-export function base64urlEncode(uint8Array: Uint8Array): string {
-  let binary = '';
-  const len = uint8Array.length;
-  for (let i = 0; i < len; i++) {
-    binary += String.fromCharCode(uint8Array[i]);
-  }
-  const base64 =
-    typeof btoa === 'function' ? btoa(binary) : Buffer.from(binary, 'binary').toString('base64');
-  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const B64_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+const B64_LOOKUP = new Uint8Array(256);
+for (let i = 0; i < B64_CHARS.length; i++) {
+  B64_LOOKUP[B64_CHARS.charCodeAt(i)] = i;
 }
 
 /**
- * Pure JavaScript Base64URL decoder (Hermes and React Native compatible).
+ * Pure JavaScript Base64URL encoder (QuickJS and Hermes compatible).
+ *
+ * @param bytes Raw byte array.
+ * @returns URL-safe Base64 string without padding.
+ */
+export function base64urlEncode(bytes: Uint8Array): string {
+  let result = '';
+  const len = bytes.length;
+  for (let i = 0; i < len; i += 3) {
+    const b0 = bytes[i];
+    const b1 = i + 1 < len ? bytes[i + 1] : 0;
+    const b2 = i + 2 < len ? bytes[i + 2] : 0;
+    result += B64_CHARS[b0 >> 2];
+    result += B64_CHARS[((b0 & 3) << 4) | (b1 >> 4)];
+    if (i + 1 < len) {
+      result += B64_CHARS[((b1 & 15) << 2) | (b2 >> 6)];
+    }
+    if (i + 2 < len) {
+      result += B64_CHARS[b2 & 63];
+    }
+  }
+  return result.replace(/\+/g, '-').replace(/\//g, '_');
+}
+
+/**
+ * Pure JavaScript Base64URL decoder (QuickJS and Hermes compatible).
  *
  * @param base64url URL-safe Base64 string.
  * @returns Decoded Uint8Array byte buffer.
@@ -33,11 +47,24 @@ export function base64urlDecode(base64url: string): Uint8Array {
   while (base64.length % 4) {
     base64 += '=';
   }
-  const binary =
-    typeof atob === 'function' ? atob(base64) : Buffer.from(base64, 'base64').toString('binary');
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
+  const len = base64.length;
+  let placeHolders = 0;
+  if (base64[len - 1] === '=') placeHolders++;
+  if (base64[len - 2] === '=') placeHolders++;
+
+  const byteLen = (len * 3) / 4 - placeHolders;
+  const bytes = new Uint8Array(byteLen);
+
+  let p = 0;
+  for (let i = 0; i < len; i += 4) {
+    const encoded0 = B64_LOOKUP[base64.charCodeAt(i)];
+    const encoded1 = B64_LOOKUP[base64.charCodeAt(i + 1)];
+    const encoded2 = B64_LOOKUP[base64.charCodeAt(i + 2)];
+    const encoded3 = B64_LOOKUP[base64.charCodeAt(i + 3)];
+
+    bytes[p++] = (encoded0 << 2) | (encoded1 >> 4);
+    if (p < byteLen) bytes[p++] = ((encoded1 & 15) << 4) | (encoded2 >> 2);
+    if (p < byteLen) bytes[p++] = ((encoded2 & 3) << 6) | (encoded3 & 63);
   }
   return bytes;
 }

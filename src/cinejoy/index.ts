@@ -5,7 +5,7 @@
  */
 
 import type { GetStreams, Stream } from '../../types/nuvio';
-import { SERVERS } from './constants';
+import { CINEJOY_EDGE_API, SERVERS } from './constants';
 import { extractServerStream } from './extractor';
 import { fetchCinejoySubtitles } from './utils';
 
@@ -29,7 +29,27 @@ export const getStreams: GetStreams = async (
       `[Cinejoy] Resolving streams for TMDB ID: ${tmdbId}, Type: ${mediaType}${mediaType === 'tv' ? ` S${season}E${episode}` : ''}`
     );
 
-    // Concurrently fetch streams from top servers and subtitles
+    // 1. Try Cloudflare Edge API first (clean JSON, 100% QuickJS compatible)
+    try {
+      const typeParam = mediaType === 'tv' ? 'series' : 'movie';
+      let edgeUrl = `${CINEJOY_EDGE_API}?tmdb=${encodeURIComponent(tmdbId)}&type=${typeParam}`;
+      if (mediaType === 'tv' && season && episode) {
+        edgeUrl += `&season=${season}&episode=${episode}`;
+      }
+
+      const edgeRes = await fetch(edgeUrl);
+      if (edgeRes.ok) {
+        const edgeData = (await edgeRes.json()) as { success?: boolean; streams?: Stream[] };
+        if (edgeData?.streams && Array.isArray(edgeData.streams) && edgeData.streams.length > 0) {
+          console.log(`[Cinejoy] Resolved ${edgeData.streams.length} stream(s) via Edge API.`);
+          return edgeData.streams;
+        }
+      }
+    } catch {
+      // Fallback to local extraction if edge API is unreachable
+    }
+
+    // 2. Concurrently fetch streams from top servers and subtitles
     const [subtitles, ...serverResults] = await Promise.all([
       fetchCinejoySubtitles(mediaType, tmdbId, season, episode),
       ...SERVERS.map(server => extractServerStream(server, mediaType, tmdbId, season, episode)),
