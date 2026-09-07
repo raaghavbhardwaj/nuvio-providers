@@ -217,7 +217,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const proto = Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto || 'https';
         const proxyBase = `${proto}://${host}/api/cinejoy?hls=1&url=`;
 
-        const rewritten = text
+        
+        const lines = text.split('\n');
+        const header: string[] = [];
+        const streams: any[] = [];
+        let currentStream: any = null;
+        let isMaster = false;
+
+        for (let line of lines) {
+          line = line.trim();
+          if (!line) continue;
+          if (line.startsWith('#EXT-X-STREAM-INF:')) {
+            isMaster = true;
+            currentStream = { tag: line, url: null, height: 0 };
+            const resMatch = line.match(/RESOLUTION=\d+x(\d+)/);
+            if (resMatch) currentStream.height = parseInt(resMatch[1]);
+          } else if (currentStream && !line.startsWith('#')) {
+            currentStream.url = line;
+            streams.push(currentStream);
+            currentStream = null;
+          } else if (!currentStream) {
+            header.push(line);
+          }
+        }
+
+        let processText = text;
+        if (isMaster && streams.length > 0) {
+          streams.sort((a, b) => b.height - a.height);
+          // Keep only the highest quality stream to force HD/4K playback
+          processText = header.join('\n') + '\n' + streams[0].tag + '\n' + streams[0].url + '\n';
+        }
+
+        const rewritten = processText
           .split('\n')
           .map((line: string) => {
             const trimmed = line.trim();
@@ -366,26 +397,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           name: 'Cinejoy',
           title: `Cinejoy [${serverName}] - ${is4K ? '4K/1080p' : '1080p'} [Proxy]`,
           url: proxyUrl,
-          quality: s.quality,
-          format: 'm3u8',
-          provider: 'cinejoy',
-          headers: getPlayerHeaders(),
-          subtitles,
-        });
-      }
-    }
-
-    // 2. Secondary: Direct CDN Streams
-    for (const sList of serverResults) {
-      for (const s of sList) {
-        const is4K = s.quality === '4K';
-        const serverMatch = s.title.match(/\[(.*?)\]/);
-        const serverName = serverMatch ? serverMatch[1] : 'Server';
-
-        allStreams.push({
-          name: 'Cinejoy',
-          title: `Cinejoy [${serverName}] - ${is4K ? '4K/1080p' : '1080p'} [Direct]`,
-          url: s.url,
           quality: s.quality,
           format: 'm3u8',
           provider: 'cinejoy',

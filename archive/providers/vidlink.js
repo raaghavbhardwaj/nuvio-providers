@@ -1,11 +1,13 @@
 /**
  * vidlink - Built from src/vidlink/
- * Generated: 2025-12-31T21:23:16.719Z
+ * Generated: 2026-09-07T18:04:58.761Z
  */
 "use strict";
 var __defProp = Object.defineProperty;
 var __defProps = Object.defineProperties;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
+var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getOwnPropSymbols = Object.getOwnPropertySymbols;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __propIsEnum = Object.prototype.propertyIsEnumerable;
@@ -22,6 +24,19 @@ var __spreadValues = (a, b) => {
   return a;
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 var __async = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
@@ -43,26 +58,28 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 
-// src/vidlink/constants.js
+// src/vidlink/index.ts
+var vidlink_exports = {};
+__export(vidlink_exports, {
+  getStreams: () => getStreams
+});
+module.exports = __toCommonJS(vidlink_exports);
 var TMDB_API_KEY = "68e094699525b18a70bab2f86b1fa706";
 var ENC_DEC_API = "https://enc-dec.app/api";
 var VIDLINK_API = "https://vidlink.pro/api/b";
 var VIDLINK_HEADERS = {
-  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
-  "Connection": "keep-alive",
-  "Referer": "https://vidlink.pro/",
-  "Origin": "https://vidlink.pro"
+  Connection: "keep-alive",
+  Referer: "https://vidlink.pro/",
+  Origin: "https://vidlink.pro"
 };
-
-// src/vidlink/http.js
 function makeRequest(_0) {
   return __async(this, arguments, function* (url, options = {}) {
     const defaultHeaders = __spreadValues({
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
-      "Accept": "application/json,*/*",
+      Accept: "application/json,*/*",
       "Accept-Language": "en-US,en;q=0.5",
       "Accept-Encoding": "gzip, deflate",
-      "Connection": "keep-alive"
+      Connection: "keep-alive"
     }, options.headers);
     try {
       const response = yield fetch(url, __spreadValues({
@@ -79,8 +96,6 @@ function makeRequest(_0) {
     }
   });
 }
-
-// src/vidlink/tmdb.js
 function getTmdbInfo(tmdbId, mediaType) {
   return __async(this, null, function* () {
     var _a, _b;
@@ -110,8 +125,6 @@ function encryptTmdbId(tmdbId) {
     }
   });
 }
-
-// src/vidlink/m3u8.js
 function resolveUrl(url, baseUrl) {
   if (url.startsWith("http")) {
     return url;
@@ -174,16 +187,18 @@ function fetchAndParseM3U8(playlistUrl, mediaInfo, subtitles) {
       const parsedStreams = parseM3U8(m3u8Content, playlistUrl);
       if (parsedStreams.length === 0) {
         console.log("[Vidlink] No quality variants found, returning master playlist");
-        return [{
-          name: "Vidlink - Auto",
-          title: mediaInfo.title,
-          url: playlistUrl,
-          quality: "Auto",
-          size: "Unknown",
-          headers: VIDLINK_HEADERS,
-          provider: "vidlink",
-          subtitles: subtitles || []
-        }];
+        return [
+          {
+            name: "Vidlink - Auto",
+            title: mediaInfo.title,
+            url: playlistUrl,
+            quality: "Auto",
+            size: "Unknown",
+            headers: {},
+            provider: "vidlink",
+            subtitles: subtitles || []
+          }
+        ];
       }
       console.log(`[Vidlink] Found ${parsedStreams.length} quality variants`);
       return parsedStreams.map((stream) => {
@@ -194,28 +209,28 @@ function fetchAndParseM3U8(playlistUrl, mediaInfo, subtitles) {
           url: stream.url,
           quality,
           size: "Unknown",
-          headers: VIDLINK_HEADERS,
+          headers: {},
           provider: "vidlink",
           subtitles: subtitles || []
         };
       });
     } catch (error) {
       console.error(`[Vidlink] Error fetching/parsing M3U8: ${error.message}`);
-      return [{
-        name: "Vidlink - Auto",
-        title: mediaInfo.title,
-        url: playlistUrl,
-        quality: "Auto",
-        size: "Unknown",
-        headers: VIDLINK_HEADERS,
-        provider: "vidlink",
-        subtitles: subtitles || []
-      }];
+      return [
+        {
+          name: "Vidlink - Auto",
+          title: mediaInfo.title,
+          url: playlistUrl,
+          quality: "Auto",
+          size: "Unknown",
+          headers: {},
+          provider: "vidlink",
+          subtitles: subtitles || []
+        }
+      ];
     }
   });
 }
-
-// src/vidlink/processor.js
 function extractQuality(streamData) {
   if (!streamData)
     return "Unknown";
@@ -278,7 +293,7 @@ function processVidlinkResponse(data, mediaInfo) {
             url: sub.url,
             language: sub.language || sub.lang || sub.label || "Unknown",
             name: sub.name || sub.label || sub.language || sub.lang || "Unknown",
-            headers: VIDLINK_HEADERS
+            headers: {}
           });
         }
       });
@@ -294,7 +309,7 @@ function processVidlinkResponse(data, mediaInfo) {
             url: qualityData.url,
             quality,
             size: "Unknown",
-            headers: VIDLINK_HEADERS,
+            headers: {},
             provider: "vidlink",
             subtitles
           });
@@ -324,7 +339,7 @@ function processVidlinkResponse(data, mediaInfo) {
         url: data.url,
         quality,
         size: "Unknown",
-        headers: VIDLINK_HEADERS,
+        headers: {},
         provider: "vidlink",
         subtitles
       });
@@ -338,7 +353,7 @@ function processVidlinkResponse(data, mediaInfo) {
             url: stream.url,
             quality,
             size: stream.size || "Unknown",
-            headers: VIDLINK_HEADERS,
+            headers: {},
             provider: "vidlink",
             subtitles
           });
@@ -354,7 +369,7 @@ function processVidlinkResponse(data, mediaInfo) {
             url: link.url,
             quality,
             size: link.size || "Unknown",
-            headers: VIDLINK_HEADERS,
+            headers: {},
             provider: "vidlink",
             subtitles
           });
@@ -374,7 +389,7 @@ function processVidlinkResponse(data, mediaInfo) {
               url: value,
               quality,
               size: "Unknown",
-              headers: VIDLINK_HEADERS,
+              headers: {},
               provider: "vidlink",
               subtitles
             });
@@ -393,8 +408,6 @@ function processVidlinkResponse(data, mediaInfo) {
   }
   return streams;
 }
-
-// src/vidlink/index.js
 var QUALITY_ORDER = {
   "4K": 5,
   "1440p": 4,
@@ -403,12 +416,14 @@ var QUALITY_ORDER = {
   "480p": 1,
   "360p": 0,
   "240p": -1,
-  "Auto": -2,
-  "Unknown": -3
+  Auto: -2,
+  Unknown: -3
 };
 function getStreams(tmdbId, mediaType = "movie", seasonNum = null, episodeNum = null) {
   return __async(this, null, function* () {
-    console.log(`[Vidlink] Fetching streams for TMDB ID: ${tmdbId}, Type: ${mediaType}${mediaType === "tv" ? `, S:${seasonNum}E:${episodeNum}` : ""}`);
+    console.log(
+      `[Vidlink] Fetching streams for TMDB ID: ${tmdbId}, Type: ${mediaType}${mediaType === "tv" ? `, S:${seasonNum}E:${episodeNum}` : ""}`
+    );
     try {
       const { title, year } = yield getTmdbInfo(tmdbId, mediaType);
       const encryptedId = yield encryptTmdbId(tmdbId);
@@ -443,11 +458,15 @@ function getStreams(tmdbId, mediaType = "movie", seasonNum = null, episodeNum = 
         );
         const parsedStreamArrays = yield Promise.all(playlistPromises);
         const allStreams = directStreams.concat(...parsedStreamArrays);
-        allStreams.sort((a, b) => (QUALITY_ORDER[b.quality] || -3) - (QUALITY_ORDER[a.quality] || -3));
+        allStreams.sort(
+          (a, b) => (QUALITY_ORDER[b.quality] || -3) - (QUALITY_ORDER[a.quality] || -3)
+        );
         console.log(`[Vidlink] Successfully processed ${allStreams.length} total streams`);
         return allStreams;
       } else {
-        directStreams.sort((a, b) => (QUALITY_ORDER[b.quality] || -3) - (QUALITY_ORDER[a.quality] || -3));
+        directStreams.sort(
+          (a, b) => (QUALITY_ORDER[b.quality] || -3) - (QUALITY_ORDER[a.quality] || -3)
+        );
         console.log(`[Vidlink] Successfully processed ${directStreams.length} streams`);
         return directStreams;
       }
@@ -457,4 +476,3 @@ function getStreams(tmdbId, mediaType = "movie", seasonNum = null, episodeNum = 
     }
   });
 }
-module.exports = { getStreams };
