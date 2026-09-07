@@ -1,7 +1,8 @@
 /**
  * mycima - Built from src/mycima/
- * Generated: 2026-06-01T14:20:20.835Z
+ * Generated: 2026-09-07T16:01:56.671Z
  */
+"use strict";
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __defProps = Object.defineProperties;
@@ -69,7 +70,7 @@ var import_cheerio_without_node_native2 = __toESM(require("cheerio-without-node-
 var MAIN_URL = "https://mycima.red";
 var HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-  "Referer": MAIN_URL + "/",
+  Referer: MAIN_URL + "/",
   "X-Requested-With": "XMLHttpRequest"
 };
 var TMDB_BASE_URL = "https://api.themoviedb.org/3";
@@ -83,7 +84,7 @@ function getTMDBDetails(tmdbId, mediaType) {
     const url = `${TMDB_BASE_URL}/${endpoint}/${tmdbId}?api_key=${TMDB_API_KEY}&append_to_response=external_ids`;
     const response = yield fetch(url, {
       method: "GET",
-      headers: { "Accept": "application/json", "User-Agent": "Mozilla/5.0" }
+      headers: { Accept: "application/json", "User-Agent": "Mozilla/5.0" }
     });
     if (!response.ok)
       throw new Error(`TMDB API error: ${response.status}`);
@@ -171,7 +172,7 @@ function getImageURL(style) {
 }
 function jsUnpack(code) {
   try {
-    let unbase = function(n, base) {
+    let unbase2 = function(n, base) {
       const alphabet = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
       if (base <= 36)
         return parseInt(n, base).toString(36);
@@ -184,7 +185,10 @@ function jsUnpack(code) {
       }
       return res;
     };
-    const match = code.match(/}\s*\(\s*['"](.+?)['"]\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*['"](.+?)['"]\.split\(['"]\|['"]\)/);
+    var unbase = unbase2;
+    const match = code.match(
+      /}\s*\(\s*['"](.+?)['"]\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*['"](.+?)['"]\.split\(['"]\|['"]\)/
+    );
     if (!match)
       return code;
     let [, p, a, c, k] = match;
@@ -193,7 +197,7 @@ function jsUnpack(code) {
     k = k.split("|");
     while (c--) {
       if (k[c]) {
-        const word = unbase(c, a);
+        const word = unbase2(c, a);
         const regex = new RegExp("\\b" + word + "\\b", "g");
         p = p.replace(regex, k[c]);
       }
@@ -267,21 +271,23 @@ function decryptVidStack(encoded, url) {
     for (const ivStr of ivs) {
       try {
         const iv = import_crypto_js.default.enc.Utf8.parse(ivStr);
-        const decrypted = import_crypto_js.default.AES.decrypt(
-          { ciphertext: import_crypto_js.default.enc.Hex.parse(encoded) },
-          key,
-          { iv, mode: import_crypto_js.default.mode.CBC, padding: import_crypto_js.default.pad.Pkcs7 }
-        );
+        const decrypted = import_crypto_js.default.AES.decrypt({ ciphertext: import_crypto_js.default.enc.Hex.parse(encoded) }, key, {
+          iv,
+          mode: import_crypto_js.default.mode.CBC,
+          padding: import_crypto_js.default.pad.Pkcs7
+        });
         const decryptedText = decrypted.toString(import_crypto_js.default.enc.Utf8);
         if (decryptedText && decryptedText.includes("source")) {
           const m3u8 = (_b = (_a = decryptedText.match(/"source":"(.*?)"/)) == null ? void 0 : _a[1]) == null ? void 0 : _b.replace(/\\/g, "");
           if (m3u8) {
-            return [{
-              source: "Vidstack",
-              quality: "M3U8",
-              url: m3u8,
-              headers: { "Referer": url }
-            }];
+            return [
+              {
+                source: "Vidstack",
+                quality: "M3U8",
+                url: m3u8,
+                headers: { Referer: url }
+              }
+            ];
           }
         }
       } catch (e) {
@@ -335,7 +341,10 @@ function vidHideExtractor(url) {
         const postUrl = action.startsWith("http") ? action : `${urlObj.protocol}//${urlObj.hostname}${action}`;
         const postRes = yield fetch(postUrl, {
           method: "POST",
-          headers: __spreadProps(__spreadValues({}, HEADERS), { "Content-Type": "application/x-www-form-urlencoded", Referer: embedUrl }),
+          headers: __spreadProps(__spreadValues({}, HEADERS), {
+            "Content-Type": "application/x-www-form-urlencoded",
+            Referer: embedUrl
+          }),
           body: formData.toString()
         });
         if (postRes.ok) {
@@ -358,15 +367,19 @@ function doodStreamExtractor(url) {
       const md5 = (_a = html.match(/\/pass_md5\/([^'"]+)/)) == null ? void 0 : _a[1];
       if (!md5)
         return [];
-      const passRes = yield fetch(`https://dood.re/pass_md5/${md5}`, { headers: __spreadProps(__spreadValues({}, HEADERS), { Referer: url }) });
+      const passRes = yield fetch(`https://dood.re/pass_md5/${md5}`, {
+        headers: __spreadProps(__spreadValues({}, HEADERS), { Referer: url })
+      });
       const passContent = yield passRes.text();
       const finalUrl = passContent + "abc?token=" + md5 + "&expiry=" + Date.now();
-      return [{
-        source: "DoodStream",
-        quality: "Unknown",
-        url: finalUrl,
-        headers: __spreadProps(__spreadValues({}, HEADERS), { Referer: url })
-      }];
+      return [
+        {
+          source: "DoodStream",
+          quality: "Unknown",
+          url: finalUrl,
+          headers: __spreadProps(__spreadValues({}, HEADERS), { Referer: url })
+        }
+      ];
     } catch (e) {
       return [];
     }
@@ -380,12 +393,14 @@ function streamTapeExtractor(url) {
       const match = html.match(/id="videolink">([^<]+)/);
       if (match) {
         let videoUrl = "https:" + match[1];
-        return [{
-          source: "StreamTape",
-          quality: "Unknown",
-          url: videoUrl,
-          headers: __spreadProps(__spreadValues({}, HEADERS), { Referer: url })
-        }];
+        return [
+          {
+            source: "StreamTape",
+            quality: "Unknown",
+            url: videoUrl,
+            headers: __spreadProps(__spreadValues({}, HEADERS), { Referer: url })
+          }
+        ];
       }
       return [];
     } catch (e) {
@@ -405,12 +420,14 @@ function mixDropExtractor(url) {
           let videoUrl = match[1];
           if (videoUrl.startsWith("//"))
             videoUrl = "https:" + videoUrl;
-          return [{
-            source: "MixDrop",
-            quality: "Unknown",
-            url: videoUrl,
-            headers: __spreadProps(__spreadValues({}, HEADERS), { Referer: url })
-          }];
+          return [
+            {
+              source: "MixDrop",
+              quality: "Unknown",
+              url: videoUrl,
+              headers: __spreadProps(__spreadValues({}, HEADERS), { Referer: url })
+            }
+          ];
         }
       }
       return [];
@@ -430,7 +447,14 @@ function filemoonExtractor(url) {
       }
       const fileMatch = content.match(/file\s*:\s*["'](http[^"']+)["']/);
       if (fileMatch) {
-        return [{ source: "Filemoon", quality: "Unknown", url: fileMatch[1], headers: __spreadProps(__spreadValues({}, HEADERS), { Referer: url }) }];
+        return [
+          {
+            source: "Filemoon",
+            quality: "Unknown",
+            url: fileMatch[1],
+            headers: __spreadProps(__spreadValues({}, HEADERS), { Referer: url })
+          }
+        ];
       }
       return [];
     } catch (e) {
@@ -447,7 +471,14 @@ function govidExtractor(url) {
       if (hexMatch) {
         const decodedUrl = hexDecode(hexMatch[1]);
         if (decodedUrl.startsWith("http")) {
-          return [{ source: "Govid", quality: "Unknown", url: decodedUrl, headers: __spreadProps(__spreadValues({}, HEADERS), { Referer: url }) }];
+          return [
+            {
+              source: "Govid",
+              quality: "Unknown",
+              url: decodedUrl,
+              headers: __spreadProps(__spreadValues({}, HEADERS), { Referer: url })
+            }
+          ];
         }
       }
       return [];
@@ -469,11 +500,25 @@ function genericExtractor(html, url) {
       }
       const m3u8Match = content.match(/["'](http[^"']+\.m3u8[^"']*)["']/);
       if (m3u8Match) {
-        return [{ source: "Generic HLS", quality: "Unknown", url: m3u8Match[1], headers: __spreadProps(__spreadValues({}, HEADERS), { Referer: url }) }];
+        return [
+          {
+            source: "Generic HLS",
+            quality: "Unknown",
+            url: m3u8Match[1],
+            headers: __spreadProps(__spreadValues({}, HEADERS), { Referer: url })
+          }
+        ];
       }
       const mp4Match = content.match(/["'](http[^"']+\.mp4[^"']*)["']/);
       if (mp4Match) {
-        return [{ source: "Generic MP4", quality: "Unknown", url: mp4Match[1], headers: __spreadProps(__spreadValues({}, HEADERS), { Referer: url }) }];
+        return [
+          {
+            source: "Generic MP4",
+            quality: "Unknown",
+            url: mp4Match[1],
+            headers: __spreadProps(__spreadValues({}, HEADERS), { Referer: url })
+          }
+        ];
       }
       return [];
     } catch (e) {

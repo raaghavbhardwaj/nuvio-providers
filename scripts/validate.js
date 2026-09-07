@@ -1,41 +1,43 @@
 #!/usr/bin/env node
 
 /**
- * Manifest Validator for nuvio-providers
- * 
- * Verifies that manifest.json conforms to Nuvio's schema and all referenced files exist.
+ * @fileoverview Manifest validation script for Nuvio provider repositories.
+ * Enforces JSON integrity, schema completeness, and filesystem consistency.
  */
 
 const fs = require('fs');
 const path = require('path');
 
-const manifestPath = path.resolve(__dirname, '..', 'manifest.json');
-const rootDir = path.resolve(__dirname, '..');
+const MANIFEST_PATH = path.resolve(__dirname, '..', 'manifest.json');
+const ROOT_DIR = path.resolve(__dirname, '..');
 
-function validate() {
+/**
+ * Validates manifest.json according to Nuvio provider specifications.
+ */
+function validateManifest() {
   console.log('\n🔍 Validating manifest.json...\n');
 
-  if (!fs.existsSync(manifestPath)) {
-    console.error('❌ manifest.json not found in repository root!');
+  if (!fs.existsSync(MANIFEST_PATH)) {
+    console.error('❌ Error: manifest.json not found in repository root.');
     process.exit(1);
   }
 
   let manifest;
   try {
-    const raw = fs.readFileSync(manifestPath, 'utf8');
-    manifest = JSON.parse(raw);
+    const rawContent = fs.readFileSync(MANIFEST_PATH, 'utf8');
+    manifest = JSON.parse(rawContent);
   } catch (err) {
-    console.error('❌ manifest.json is not valid JSON:', err.message);
+    console.error('❌ Error: manifest.json contains invalid JSON syntax:', err.message);
     process.exit(1);
   }
 
-  let errors = [];
-  let warnings = [];
+  const errors = [];
+  const warnings = [];
 
-  if (!manifest.name) errors.push('Root missing "name" field');
-  if (!manifest.version) errors.push('Root missing "version" field');
+  if (!manifest.name) errors.push('Root object missing required "name" field.');
+  if (!manifest.version) errors.push('Root object missing required "version" field.');
   if (!Array.isArray(manifest.scrapers)) {
-    errors.push('Root "scrapers" must be an array');
+    errors.push('Root "scrapers" property must be an array.');
     console.error('Validation failed:');
     errors.forEach(e => console.error(`  - ${e}`));
     process.exit(1);
@@ -45,47 +47,53 @@ function validate() {
   const seenFiles = new Set();
 
   manifest.scrapers.forEach((scraper, index) => {
-    const prefix = `Scraper #${index + 1} (${scraper.name || scraper.id || 'unnamed'}):`;
+    const label = `Scraper #${index + 1} (${scraper.name || scraper.id || 'unnamed'}):`;
 
-    if (!scraper.id) errors.push(`${prefix} missing "id"`);
-    else if (seenIds.has(scraper.id)) errors.push(`${prefix} duplicate id "${scraper.id}"`);
-    else seenIds.add(scraper.id);
+    if (!scraper.id) {
+      errors.push(`${label} missing required "id".`);
+    } else if (seenIds.has(scraper.id)) {
+      errors.push(`${label} duplicate id "${scraper.id}".`);
+    } else {
+      seenIds.add(scraper.id);
+    }
 
-    if (!scraper.name) errors.push(`${prefix} missing "name"`);
-    if (!scraper.version) errors.push(`${prefix} missing "version"`);
-    if (typeof scraper.enabled !== 'boolean') errors.push(`${prefix} "enabled" must be boolean`);
+    if (!scraper.name) errors.push(`${label} missing required "name".`);
+    if (!scraper.version) errors.push(`${label} missing required "version".`);
+    if (typeof scraper.enabled !== 'boolean') {
+      errors.push(`${label} "enabled" must be a boolean.`);
+    }
 
     if (!Array.isArray(scraper.supportedTypes) || scraper.supportedTypes.length === 0) {
-      errors.push(`${prefix} "supportedTypes" must be non-empty array of 'movie'|'tv'`);
+      errors.push(`${label} "supportedTypes" must be a non-empty array of 'movie'|'tv'.`);
     } else {
-      scraper.supportedTypes.forEach(t => {
-        if (t !== 'movie' && t !== 'tv') {
-          errors.push(`${prefix} invalid type "${t}" in supportedTypes`);
+      for (const mediaType of scraper.supportedTypes) {
+        if (mediaType !== 'movie' && mediaType !== 'tv') {
+          errors.push(`${label} invalid type "${mediaType}" in supportedTypes.`);
         }
-      });
+      }
     }
 
     if (!scraper.filename) {
-      errors.push(`${prefix} missing "filename"`);
+      errors.push(`${label} missing required "filename".`);
     } else {
-      const fullPath = path.join(rootDir, scraper.filename);
+      const fullPath = path.join(ROOT_DIR, scraper.filename);
       if (!fs.existsSync(fullPath)) {
-        errors.push(`${prefix} referenced file "${scraper.filename}" does not exist on disk`);
+        errors.push(`${label} referenced file "${scraper.filename}" does not exist on disk.`);
       }
       if (seenFiles.has(scraper.filename)) {
-        warnings.push(`${prefix} reuses filename "${scraper.filename}"`);
+        warnings.push(`${label} reuses filename "${scraper.filename}".`);
       } else {
         seenFiles.add(scraper.filename);
       }
     }
 
     if (!scraper.logo) {
-      warnings.push(`${prefix} missing "logo" icon URL`);
+      warnings.push(`${label} missing "logo" icon URL.`);
     }
   });
 
   if (warnings.length > 0) {
-    console.log('⚠️  Warnings:');
+    console.log('⚠️  Validation Warnings:');
     warnings.forEach(w => console.log(`   ${w}`));
     console.log('');
   }
@@ -100,4 +108,4 @@ function validate() {
   console.log(`✅ manifest.json is 100% valid! Checked ${manifest.scrapers.length} provider(s).\n`);
 }
 
-validate();
+validateManifest();

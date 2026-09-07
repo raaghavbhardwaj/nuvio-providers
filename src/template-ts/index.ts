@@ -1,15 +1,30 @@
+/**
+ * @fileoverview Example TypeScript reference provider implementation for Nuvio.
+ * Demonstrates standard typing, error resilience, and Hermes-compliant bundling.
+ */
+
 import type { GetStreams, Stream } from '../../types/nuvio';
-import { createHeaders } from '../common/headers';
+import { createHeaders, USER_AGENTS } from '../common/headers';
 
 /**
- * Example TypeScript Provider for Nuvio
+ * Resolves media streams for a movie or TV show.
+ *
+ * @param tmdbId TMDB ID for the requested media item.
+ * @param mediaType Content type ('movie' or 'tv').
+ * @param season Season number (1-indexed for TV shows, null for movies).
+ * @param episode Episode number (1-indexed for TV shows, null for movies).
+ * @returns An array of stream objects playable by Nuvio.
  */
-export const getStreams: GetStreams = async (tmdbId, mediaType, season, episode): Promise<Stream[]> => {
-  const headers = createHeaders('https://example.com');
+export const getStreams: GetStreams = async (
+  tmdbId: string,
+  mediaType: 'movie' | 'tv',
+  season: number | null,
+  episode: number | null
+): Promise<Stream[]> => {
+  const headers = createHeaders('https://example.com', USER_AGENTS.DESKTOP);
 
-  console.log(`[TemplateTS] Searching for TMDB ID: ${tmdbId}, Type: ${mediaType}`);
+  console.log(`[TemplateTS] Resolving streams for TMDB ID: ${tmdbId}, Type: ${mediaType}`);
 
-  // Example stream result
   const streams: Stream[] = [
     {
       name: 'TemplateTS',
@@ -22,10 +37,10 @@ export const getStreams: GetStreams = async (tmdbId, mediaType, season, episode)
         {
           url: `https://example.com/subs/${tmdbId}_en.vtt`,
           language: 'en',
-          name: 'English'
-        }
-      ]
-    }
+          name: 'English',
+        },
+      ],
+    },
   ];
 
   return streams;

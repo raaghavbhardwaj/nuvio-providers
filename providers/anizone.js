@@ -1,7 +1,8 @@
 /**
  * anizone - Built from src/anizone/
- * Generated: 2026-06-05T21:04:20.318Z
+ * Generated: 2026-09-07T16:01:56.638Z
  */
+"use strict";
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -66,7 +67,7 @@ var import_cheerio_without_node_native = __toESM(require("cheerio-without-node-n
 var MAIN_URL = "https://anizone.to";
 var HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36",
-  "Referer": "https://anizone.to/"
+  Referer: "https://anizone.to/"
 };
 
 // src/anizone/utils.js
@@ -162,7 +163,17 @@ function normalize(str) {
 function getSeasonRegexes(season) {
   if (season === 1) {
     return {
-      mustNot: [/season\s*[2-9]/i, /[\s\-][iI]{2,}/, /\s+[2-9]nd/i, /\s+[2-9]rd/i, /\s+[2-9]th/i, /\s+ii/i, /\s+iii/i, /\s+iv/i, /\s+v/i]
+      mustNot: [
+        /season\s*[2-9]/i,
+        /[\s\-][iI]{2,}/,
+        /\s+[2-9]nd/i,
+        /\s+[2-9]rd/i,
+        /\s+[2-9]th/i,
+        /\s+ii/i,
+        /\s+iii/i,
+        /\s+iv/i,
+        /\s+v/i
+      ]
     };
   }
   const patterns = [];
@@ -285,7 +296,12 @@ function getStreams(tmdbId, mediaType, season, episode) {
       let animeSlug = null;
       if (cards.length > 0) {
         if (mediaType === "tv") {
-          animeSlug = matchCard(cards, animeTitle, mapping && mapping.anime_title || animeTitle, season);
+          animeSlug = matchCard(
+            cards,
+            animeTitle,
+            mapping && mapping.anime_title || animeTitle,
+            season
+          );
         } else {
           animeSlug = matchMovieCard(cards, animeTitle);
         }

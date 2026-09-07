@@ -24,6 +24,9 @@ importers:
       nodemon:
         specifier: ^3.0.0
         version: 3.1.14
+      prettier:
+        specifier: ^3.9.6
+        version: 3.9.6
       typescript:
         specifier: ^7.0.2
         version: 7.0.2
@@ -618,6 +621,11 @@ packages:
   prelude-ls@1.1.2:
     resolution: {integrity: sha512-ESF23V4SKG6lVSGZgYNpbsiaAkdab6ZgOxe52p7+Kid3W3u3bxR4Vfd/o21dmN7jSt0IwgZ4v5MUd26FEtXE9w==}
     engines: {node: '>= 0.8.0'}
+
+  prettier@3.9.6:
+    resolution: {integrity: sha512-OpN0zzVdiaiAhxpuuj5efpIS4sY9j7bY6uR5mnj5yPzGkdkjNKSJeUThPb60Jw29QuAZgA4o+/iB49kFiaBX6g==}
+    engines: {node: '>=14'}
+    hasBin: true
 
   process-nextick-args@2.0.1:
     resolution: {integrity: sha512-3ouUOpQhtgrbOa17J7+uxOTpITYWaGP7/AhoR3+A+/1e9skrzelGi/dXzEYyvbxubEF6Wn2ypscTKiKJFFn1ag==}
@@ -1294,6 +1302,8 @@ snapshots:
 
   prelude-ls@1.1.2:
     optional: true
+
+  prettier@3.9.6: {}
 
   process-nextick-args@2.0.1: {}
 

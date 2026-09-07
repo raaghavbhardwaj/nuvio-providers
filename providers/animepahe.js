@@ -1,7 +1,8 @@
 /**
  * animepahe - Built from src/animepahe/
- * Generated: 2026-06-01T14:20:20.667Z
+ * Generated: 2026-09-07T16:01:56.635Z
  */
+"use strict";
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __defProps = Object.defineProperties;
@@ -82,8 +83,8 @@ var MAIN_URL = "https://animepahe.com";
 var PROXY_URL = "https://animepaheproxy.phisheranimepahe.workers.dev/?url=";
 var HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36",
-  "Cookie": "__ddg2_=1234567890",
-  "Referer": "https://animepahe.com/"
+  Cookie: "__ddg2_=1234567890",
+  Referer: "https://animepahe.com/"
 };
 
 // src/animepahe/utils.js
@@ -158,7 +159,9 @@ function extractQuality(text) {
 // src/animepahe/extractors.js
 function unpack(code) {
   try {
-    const match = code.match(/}\((['"])([\s\S]*?)\1,\s*(\d+),\s*(\d+),\s*(['"])([\s\S]*?)\5\.split\((['"])\|\7\)/);
+    const match = code.match(
+      /}\((['"])([\s\S]*?)\1,\s*(\d+),\s*(\d+),\s*(['"])([\s\S]*?)\5\.split\((['"])\|\7\)/
+    );
     if (match) {
       let [_, quote1, p, a, c, quote2, kStr] = match;
       p = p.replace(/\\'/g, "'").replace(/\\"/g, '"').replace(/\\\\/g, "\\");
@@ -183,7 +186,7 @@ function extractKwik(url) {
       const baseUrl = settings.domain || "https://animepahe.com";
       const html = yield fetchText(url, {
         headers: __spreadProps(__spreadValues({}, HEADERS), {
-          "Referer": `${baseUrl}/`,
+          Referer: `${baseUrl}/`,
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }),
         useProxy: false
@@ -224,8 +227,8 @@ function extractKwik(url) {
             m3u8: m3u8Url,
             mp4: mp4Url,
             headers: {
-              "Referer": "https://kwik.cx/",
-              "Origin": "https://kwik.cx",
+              Referer: "https://kwik.cx/",
+              Origin: "https://kwik.cx",
               "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             }
           };
@@ -267,7 +270,7 @@ function extractPahe(url) {
         redirect: "manual",
         headers: {
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          "Referer": "https://pahe.win/"
+          Referer: "https://pahe.win/"
         }
       });
       const redirectLoc = initRes.headers.get("location") || initRes.headers.get("Location");
@@ -278,7 +281,7 @@ function extractPahe(url) {
         method: "GET",
         headers: {
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          "Referer": "https://kwik.cx/"
+          Referer: "https://kwik.cx/"
         }
       });
       const html = yield kwikRes.text();
@@ -310,8 +313,8 @@ function extractPahe(url) {
           redirect: "manual",
           headers: {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Referer": kwikUrl,
-            "Cookie": cookie,
+            Referer: kwikUrl,
+            Cookie: cookie,
             "Content-Type": "application/x-www-form-urlencoded"
           },
           body: formData.toString()
@@ -326,7 +329,7 @@ function extractPahe(url) {
         return {
           url: location,
           headers: {
-            "Referer": "https://kwik.cx/",
+            Referer: "https://kwik.cx/",
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
           }
         };
@@ -441,7 +444,7 @@ function getStreams(tmdbId, mediaType, season, episode) {
                     url: res.mp4,
                     quality,
                     headers: __spreadProps(__spreadValues({}, res.headers), {
-                      "Referer": kwikUrl
+                      Referer: kwikUrl
                     })
                   });
                 }

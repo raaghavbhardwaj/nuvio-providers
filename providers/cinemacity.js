@@ -1,7 +1,8 @@
 /**
  * cinemacity - Built from src/cinemacity/
- * Generated: 2026-06-01T14:20:20.706Z
+ * Generated: 2026-09-07T16:01:56.640Z
  */
+"use strict";
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __defProps = Object.defineProperties;
@@ -69,8 +70,8 @@ var import_cheerio_without_node_native = __toESM(require("cheerio-without-node-n
 var MAIN_URL = "https://cinemacity.cc";
 var HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36",
-  "Cookie": "dle_user_id=32729; dle_password=894171c6a8dab18ee594d5c652009a35;",
-  "Referer": "https://cinemacity.cc/"
+  Cookie: "dle_user_id=32729; dle_password=894171c6a8dab18ee594d5c652009a35;",
+  Referer: "https://cinemacity.cc/"
 };
 var TMDB_API_KEY = "1865f43a0549ca50d341dd9ab8b29f49";
 
@@ -273,10 +274,14 @@ function getStreams(tmdbId, mediaType, season, episode) {
       } else {
         if (Array.isArray(fileData)) {
           const sLabel = `Season ${season}`;
-          const sObj = fileData.find((s) => (s.title || "").includes(sLabel) || (s.title || "").includes(`S${season}`));
+          const sObj = fileData.find(
+            (s) => (s.title || "").includes(sLabel) || (s.title || "").includes(`S${season}`)
+          );
           if (sObj && sObj.folder) {
             const eLabel = `Episode ${episode}`;
-            const eObj = sObj.folder.find((e) => (e.title || "").includes(eLabel) || (e.title || "").includes(`E${episode}`));
+            const eObj = sObj.folder.find(
+              (e) => (e.title || "").includes(eLabel) || (e.title || "").includes(`E${episode}`)
+            );
             if (eObj && eObj.file) {
               const subs = parseSubtitles(eObj.subtitle || sObj.subtitle || globalSubtitleData);
               processStr(eObj.file, `${animeTitle} S${season}E${episode}`, subs);

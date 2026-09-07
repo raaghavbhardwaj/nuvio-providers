@@ -1,7 +1,8 @@
 /**
  * netmirror - Built from src/netmirror/
- * Generated: 2026-06-06T08:44:04.688Z
+ * Generated: 2026-09-07T16:01:56.675Z
  */
+"use strict";
 var __defProp = Object.defineProperty;
 var __defProps = Object.defineProperties;
 var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
@@ -84,11 +85,11 @@ var PLATFORM_MAP = {
 };
 var NEW_TV_BASE_HEADERS = {
   "Cache-Control": "no-cache, no-store, must-revalidate",
-  "Pragma": "no-cache",
-  "Expires": "0",
+  Pragma: "no-cache",
+  Expires: "0",
   "X-Requested-With": "NetmirrorNewTV v1.0",
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:136.0) Gecko/20100101 Firefox/136.0 /OS.GatuNewTV v1.0",
-  "Accept": "application/json, text/plain, */*"
+  Accept: "application/json, text/plain, */*"
 };
 var NEW_TV_DOMAINS = [
   "aHR0cHM6Ly9tb2JpbGVkZXRlY3RzLmNvbQ==",
@@ -133,7 +134,9 @@ function resolveApiUrl() {
       const base = safeAtob(encoded).replace(/\/$/, "");
       try {
         const response = yield fetch(`${base}/checknewtv.php`, {
-          headers: __spreadProps(__spreadValues({}, NEW_TV_BASE_HEADERS), { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" })
+          headers: __spreadProps(__spreadValues({}, NEW_TV_BASE_HEADERS), {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+          })
         });
         const data = yield response.json();
         const tokenHash = data.token_hash;
@@ -149,7 +152,7 @@ function resolveApiUrl() {
 }
 function buildNewTvHeaders(ott, extra = {}) {
   return __spreadValues(__spreadProps(__spreadValues({}, NEW_TV_BASE_HEADERS), {
-    "Ott": ott
+    Ott: ott
   }), extra);
 }
 
@@ -158,12 +161,15 @@ function getStreams(tmdbId, mediaType, season, episode) {
   return __async(this, null, function* () {
     try {
       const tmdbType = mediaType === "tv" ? "tv" : "movie";
-      const tmdbResp = yield fetch(`https://api.themoviedb.org/3/${tmdbType}/${tmdbId}?api_key=${TMDB_API_KEY}`, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-          "Accept": "application/json"
+      const tmdbResp = yield fetch(
+        `https://api.themoviedb.org/3/${tmdbType}/${tmdbId}?api_key=${TMDB_API_KEY}`,
+        {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+            Accept: "application/json"
+          }
         }
-      });
+      );
       const tmdbData = yield tmdbResp.json();
       const title = mediaType === "tv" ? tmdbData.name : tmdbData.title;
       if (!title)
@@ -218,19 +224,21 @@ function fetchFromPlatform(platformKey, title, mediaType, season, episode) {
     }
     const playerUrl = `${apiBase}/newtv/player.php?id=${targetId}`;
     const playerResp = yield fetch(playerUrl, {
-      headers: buildNewTvHeaders(platform.ott, { "Usertoken": "" })
+      headers: buildNewTvHeaders(platform.ott, { Usertoken: "" })
     });
     const response = yield playerResp.json();
     if (response.status === "ok" && response.video_link) {
-      return [{
-        name: `NetMirror (${platformKey.charAt(0).toUpperCase() + platformKey.slice(1)})`,
-        title: `${title}`,
-        url: response.video_link,
-        quality: "Auto",
-        headers: {
-          Referer: response.referer || apiBase
+      return [
+        {
+          name: `NetMirror (${platformKey.charAt(0).toUpperCase() + platformKey.slice(1)})`,
+          title: `${title}`,
+          url: response.video_link,
+          quality: "Auto",
+          headers: {
+            Referer: response.referer || apiBase
+          }
         }
-      }];
+      ];
     }
     return null;
   });
@@ -253,7 +261,14 @@ function getAllEpisodes(contentId, postData, platform, apiBase) {
       });
     }
     if (postData.nextPageShow === 1 && selectedSeasonId) {
-      const more = yield fetchEpisodesPage(contentId, selectedSeasonId, 2, selectedSeasonNumber, platform, apiBase);
+      const more = yield fetchEpisodesPage(
+        contentId,
+        selectedSeasonId,
+        2,
+        selectedSeasonNumber,
+        platform,
+        apiBase
+      );
       episodes.push(...more);
     }
     if (postData.season) {

@@ -1,7 +1,8 @@
 /**
  * kurage - Built from src/kurage/
- * Generated: 2026-06-02T14:17:12.167Z
+ * Generated: 2026-09-07T16:01:56.656Z
  */
+"use strict";
 var __defProp = Object.defineProperty;
 var __defProps = Object.defineProperties;
 var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
@@ -50,10 +51,10 @@ var ARM_BASE = "https://arm.haglund.dev/api/v2";
 var CINEMETA_URL = "https://v3-cinemeta.strem.io/meta";
 var DEFAULT_HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-  "Accept": "application/json, text/plain, */*",
+  Accept: "application/json, text/plain, */*",
   "Accept-Language": "en-US,en;q=0.9",
-  "Origin": KURAGE_BASE,
-  "Referer": KURAGE_BASE + "/"
+  Origin: KURAGE_BASE,
+  Referer: KURAGE_BASE + "/"
 };
 
 // src/kurage/utils.js
@@ -85,13 +86,19 @@ function getSyncInfo(id, mediaType, season, episode) {
         if (!meta)
           throw new Error("No Cinemata metadata");
         if (mediaType === "movie")
-          return { date: meta.released ? meta.released.split("T")[0] : null, title: meta.name, dayIndex: 1 };
+          return {
+            date: meta.released ? meta.released.split("T")[0] : null,
+            title: meta.name,
+            dayIndex: 1
+          };
         const videos = meta.videos || [];
         const target = videos.find((v) => v.season == season && v.episode == episode);
         if (!target || !target.released)
           return { date: null, title: null, dayIndex: 1 };
         const targetDate = target.released.split("T")[0];
-        const dayIndex = videos.filter((v) => v.season == season && v.released && v.released.split("T")[0] === targetDate && parseInt(v.episode) < parseInt(episode)).length + 1;
+        const dayIndex = videos.filter(
+          (v) => v.season == season && v.released && v.released.split("T")[0] === targetDate && parseInt(v.episode) < parseInt(episode)
+        ).length + 1;
         return { date: targetDate, title: target.name || null, dayIndex };
       } catch (e) {
         return { date: null, title: null, dayIndex: 1 };
@@ -99,7 +106,9 @@ function getSyncInfo(id, mediaType, season, episode) {
     });
     const tmdbBase = `https://api.themoviedb.org/3/${mediaType === "movie" ? "movie" : "tv"}/${id}`;
     const [details, base] = yield Promise.all([
-      fetchJson(tmdbBase + (mediaType === "movie" ? "" : "/external_ids") + `?api_key=${TMDB_API_KEY}`),
+      fetchJson(
+        tmdbBase + (mediaType === "movie" ? "" : "/external_ids") + `?api_key=${TMDB_API_KEY}`
+      ),
       fetchJson(tmdbBase + `?api_key=${TMDB_API_KEY}`)
     ]);
     let imdbId = details.imdb_id || null;
@@ -153,7 +162,9 @@ function resolveAnilistId(syncInfo) {
         if (!startStr)
           continue;
         const startDate = new Date(startStr);
-        const diffDays = Math.ceil(Math.abs(targetDate.getTime() - startDate.getTime()) / (1e3 * 60 * 60 * 24));
+        const diffDays = Math.ceil(
+          Math.abs(targetDate.getTime() - startDate.getTime()) / (1e3 * 60 * 60 * 24)
+        );
         let isMatch = false;
         if (anime.format === "MOVIE" || anime.format === "SPECIAL" || anime.episodes === 1) {
           if (diffDays <= 2)
@@ -163,7 +174,11 @@ function resolveAnilistId(syncInfo) {
           startLimit.setDate(startLimit.getDate() - 2);
           if (targetDate >= startLimit) {
             if (anime.endDate && anime.endDate.year) {
-              const endDate = new Date(anime.endDate.year, (anime.endDate.month || 12) - 1, anime.endDate.day || 31);
+              const endDate = new Date(
+                anime.endDate.year,
+                (anime.endDate.month || 12) - 1,
+                anime.endDate.day || 31
+              );
               endDate.setDate(endDate.getDate() + 2);
               if (targetDate <= endDate)
                 isMatch = true;
@@ -208,9 +223,9 @@ function getStreams(tmdbId, mediaType, season, episode) {
       const { alId, episode: alEp } = resolved;
       console.log(`[Kurage] Resolved to AniList ID: ${alId}, Episode: ${alEp}`);
       const input = {
-        "0": { "json": { "id": alId } },
-        "1": { "json": { "animeId": alId, "episode": alEp, "language": "sub" } },
-        "2": { "json": { "animeId": alId, "episode": alEp, "language": "dub" } }
+        0: { json: { id: alId } },
+        1: { json: { animeId: alId, episode: alEp, language: "sub" } },
+        2: { json: { animeId: alId, episode: alEp, language: "dub" } }
       };
       const url = `${KURAGE_BASE}/api/trpc/catalog.anilistInfo,episodes.source,episodes.source?batch=1&input=${encodeURIComponent(JSON.stringify(input))}`;
       const data = yield fetchJson(url, {

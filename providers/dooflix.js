@@ -1,7 +1,8 @@
 /**
  * dooflix - Built from src/dooflix/
- * Generated: 2026-06-01T14:20:20.721Z
+ * Generated: 2026-09-07T16:01:56.643Z
  */
+"use strict";
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
@@ -85,7 +86,7 @@ function getStreams(tmdbId, mediaType = "movie", season = null, episode = null) 
           const res = yield fetch(linkObj.url, {
             method: "GET",
             headers: {
-              "Referer": STREAM_REFERER,
+              Referer: STREAM_REFERER,
               "User-Agent": HEADERS["User-Agent"]
             },
             redirect: "manual"
@@ -98,7 +99,7 @@ function getStreams(tmdbId, mediaType = "movie", season = null, episode = null) 
               url: streamUrl,
               quality: "Auto",
               headers: {
-                "Referer": STREAM_REFERER,
+                Referer: STREAM_REFERER,
                 "User-Agent": HEADERS["User-Agent"]
               },
               provider: "dooflix"

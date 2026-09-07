@@ -1,7 +1,8 @@
 /**
  * moviesdrive - Built from src/moviesdrive/
- * Generated: 2026-06-01T21:56:44.531Z
+ * Generated: 2026-09-07T16:01:56.664Z
  */
+"use strict";
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __defProps = Object.defineProperties;
@@ -69,10 +70,10 @@ var import_cheerio_without_node_native2 = __toESM(require("cheerio-without-node-
 var DOMAINS_URL = "https://raw.githubusercontent.com/phisher98/TVVVV/refs/heads/main/domains.json";
 var HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
-  "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+  Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
   "Accept-Language": "en-US,en;q=0.9",
   "Cache-Control": "max-age=0",
-  "Connection": "keep-alive"
+  Connection: "keep-alive"
 };
 
 // src/moviesdrive/utils.js
@@ -117,7 +118,9 @@ function hubCloudExtractor(url, referer) {
             nextHref = `${urlObj.protocol}//${urlObj.hostname}/${nextHref.replace(/^\//, "")}`;
           }
           finalUrl = nextHref;
-          const secondResponse = yield fetch(finalUrl, { headers: __spreadProps(__spreadValues({}, HEADERS), { Referer: currentUrl }) });
+          const secondResponse = yield fetch(finalUrl, {
+            headers: __spreadProps(__spreadValues({}, HEADERS), { Referer: currentUrl })
+          });
           pageData = yield secondResponse.text();
         }
       }
@@ -179,8 +182,8 @@ function getStreams(tmdbId, mediaType, seasonNum = 1, episodeNum = 1) {
     const tmdbRes = yield fetch(tmdbUrl, {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-        "Accept": "application/json",
-        "Connection": "keep-alive"
+        Accept: "application/json",
+        Connection: "keep-alive"
       }
     });
     const tmdbData = yield tmdbRes.json();
@@ -220,10 +223,12 @@ function getStreams(tmdbId, mediaType, seasonNum = 1, episodeNum = 1) {
           const extracted = yield extractMdrive(dLink);
           for (const server of extracted) {
             const streams = yield loadExtractor(server, href);
-            allLinks.push(...streams.map((s) => __spreadProps(__spreadValues({}, s), {
-              title: `${tmdbData.title || tmdbData.name} - ${s.name} [${s.quality}p]`,
-              provider: "moviesdrive"
-            })));
+            allLinks.push(
+              ...streams.map((s) => __spreadProps(__spreadValues({}, s), {
+                title: `${tmdbData.title || tmdbData.name} - ${s.name} [${s.quality}p]`,
+                provider: "moviesdrive"
+              }))
+            );
           }
         }
       } else {
@@ -243,10 +248,12 @@ function getStreams(tmdbId, mediaType, seasonNum = 1, episodeNum = 1) {
               const epLinks = [link1, link2].filter((l) => !!l);
               for (const epLink of epLinks) {
                 const streams = yield loadExtractor(epLink, nextHref);
-                allLinks.push(...streams.map((s) => __spreadProps(__spreadValues({}, s), {
-                  title: `${tmdbData.title || tmdbData.name} S${seasonNum}E${episodeNum} - ${s.name} [${s.quality}p]`,
-                  provider: "moviesdrive"
-                })));
+                allLinks.push(
+                  ...streams.map((s) => __spreadProps(__spreadValues({}, s), {
+                    title: `${tmdbData.title || tmdbData.name} S${seasonNum}E${episodeNum} - ${s.name} [${s.quality}p]`,
+                    provider: "moviesdrive"
+                  }))
+                );
               }
             }
           }
@@ -262,7 +269,11 @@ function getStreams(tmdbId, mediaType, seasonNum = 1, episodeNum = 1) {
 function extractMdrive(url) {
   return __async(this, null, function* () {
     try {
-      const res = yield fetch(url, { headers: __spreadProps(__spreadValues({}, HEADERS), { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" }) });
+      const res = yield fetch(url, {
+        headers: __spreadProps(__spreadValues({}, HEADERS), {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        })
+      });
       const html = yield res.text();
       if (url.includes("search-recover.php")) {
         const qMatch = html.match(/const Q_INITIAL\s*=\s*"([^"]+)"/);
@@ -276,7 +287,10 @@ function extractMdrive(url) {
             from_ac: tokenMatch[1]
           });
           const apiRes = yield fetch(`${apiBase}?${searchParams.toString()}`, {
-            headers: __spreadProps(__spreadValues({}, HEADERS), { "Accept": "application/json", "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" })
+            headers: __spreadProps(__spreadValues({}, HEADERS), {
+              Accept: "application/json",
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            })
           });
           const data = yield apiRes.json();
           if (data.hits) {

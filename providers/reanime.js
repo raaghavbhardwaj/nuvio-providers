@@ -1,7 +1,8 @@
 /**
  * reanime - Built from src/reanime/
- * Generated: 2026-06-01T14:20:20.960Z
+ * Generated: 2026-09-07T16:01:56.677Z
  */
+"use strict";
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __defProps = Object.defineProperties;
@@ -73,11 +74,11 @@ var ARM_BASE = "https://arm.haglund.dev/api/v2";
 var CINEMETA_URL = "https://v3-cinemeta.strem.io/meta";
 var HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-  "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,application/json;q=0.8,*/*;q=0.7",
+  Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,application/json;q=0.8,*/*;q=0.7",
   "Accept-Language": "en-US,en;q=0.9"
 };
 var FLIX_HEADERS = __spreadProps(__spreadValues({}, HEADERS), {
-  "Referer": REANIME_BASE + "/"
+  Referer: REANIME_BASE + "/"
 });
 
 // src/reanime/reanime.js
@@ -106,7 +107,7 @@ function fetchJson(_0) {
   return __async(this, arguments, function* (url, options = {}) {
     const text = yield fetchText(url, __spreadProps(__spreadValues({}, options), {
       headers: __spreadValues({
-        "Accept": "application/json"
+        Accept: "application/json"
       }, options.headers || {})
     }));
     return JSON.parse(text);
@@ -140,13 +141,19 @@ function getSyncInfo(id, mediaType, season, episode) {
         if (!meta)
           throw new Error("No Cinemata metadata");
         if (mediaType === "movie")
-          return { date: meta.released ? meta.released.split("T")[0] : null, title: meta.name, dayIndex: 1 };
+          return {
+            date: meta.released ? meta.released.split("T")[0] : null,
+            title: meta.name,
+            dayIndex: 1
+          };
         const videos = meta.videos || [];
         const target = videos.find((v) => v.season == season && v.episode == episode);
         if (!target || !target.released)
           return { date: null, title: null, dayIndex: 1 };
         const targetDate = target.released.split("T")[0];
-        const dayIndex = videos.filter((v) => v.season == season && v.released && v.released.split("T")[0] === targetDate && parseInt(v.episode) < parseInt(episode)).length + 1;
+        const dayIndex = videos.filter(
+          (v) => v.season == season && v.released && v.released.split("T")[0] === targetDate && parseInt(v.episode) < parseInt(episode)
+        ).length + 1;
         return { date: targetDate, title: target.name || null, dayIndex };
       } catch (e) {
         return { date: null, title: null, dayIndex: 1 };
@@ -155,12 +162,20 @@ function getSyncInfo(id, mediaType, season, episode) {
     if (isImdb) {
       const info = yield getCinemetaInfo(id);
       if (info.date)
-        return { imdbId: id, releaseDate: info.date, episodeTitle: info.title, dayIndex: info.dayIndex, episode };
+        return {
+          imdbId: id,
+          releaseDate: info.date,
+          episodeTitle: info.title,
+          dayIndex: info.dayIndex,
+          episode
+        };
       throw new Error("Could not find release date on Cinemata");
     }
     const tmdbBase = `https://api.themoviedb.org/3/${mediaType === "movie" ? "movie" : "tv"}/${id}`;
     const [details, base] = yield Promise.all([
-      fetchJson(tmdbBase + (mediaType === "movie" ? "" : "/external_ids") + `?api_key=${TMDB_API_KEY}`),
+      fetchJson(
+        tmdbBase + (mediaType === "movie" ? "" : "/external_ids") + `?api_key=${TMDB_API_KEY}`
+      ),
       fetchJson(tmdbBase + `?api_key=${TMDB_API_KEY}`)
     ]);
     let imdbId = details.imdb_id || null;
@@ -213,7 +228,9 @@ function resolveByDate(releaseDateStr, showTitle, originalEpisode, episodeTitle,
         if (!startStr)
           continue;
         const startDate = new Date(startStr);
-        const diffDays = Math.ceil(Math.abs(targetDate.getTime() - startDate.getTime()) / (1e3 * 60 * 60 * 24));
+        const diffDays = Math.ceil(
+          Math.abs(targetDate.getTime() - startDate.getTime()) / (1e3 * 60 * 60 * 24)
+        );
         let isMatch = false;
         if (anime.format === "MOVIE" || anime.format === "SPECIAL" || anime.episodes === 1) {
           if (diffDays <= 2)
@@ -223,7 +240,11 @@ function resolveByDate(releaseDateStr, showTitle, originalEpisode, episodeTitle,
           startLimit.setDate(startLimit.getDate() - 2);
           if (targetDate >= startLimit) {
             if (anime.endDate && anime.endDate.year) {
-              const endDate = new Date(anime.endDate.year, (anime.endDate.month || 12) - 1, anime.endDate.day || 31);
+              const endDate = new Date(
+                anime.endDate.year,
+                (anime.endDate.month || 12) - 1,
+                anime.endDate.day || 31
+              );
               endDate.setDate(endDate.getDate() + 2);
               if (targetDate <= endDate)
                 isMatch = true;
@@ -246,7 +267,11 @@ function resolveByDate(releaseDateStr, showTitle, originalEpisode, episodeTitle,
               }
             }
           }
-          return { alId: anime.id, episode: episodeNum, title: anime.title.english || anime.title.romaji };
+          return {
+            alId: anime.id,
+            episode: episodeNum,
+            title: anime.title.english || anime.title.romaji
+          };
         }
       }
     } catch (e) {
@@ -339,7 +364,13 @@ function searchReanimeAnime(query, year, targetAnilistId = null) {
                   slug: cleanSlug,
                   title: ((_a = item.title) == null ? void 0 : _a.english) || ((_b = item.title) == null ? void 0 : _b.romaji) || item.title || item.name || cleanSlug,
                   anilistId: alId,
-                  score: scoreCandidate(((_c = item.title) == null ? void 0 : _c.english) || ((_d = item.title) == null ? void 0 : _d.romaji) || item.title || item.name || cleanSlug, query, year, targetAnilistId, alId)
+                  score: scoreCandidate(
+                    ((_c = item.title) == null ? void 0 : _c.english) || ((_d = item.title) == null ? void 0 : _d.romaji) || item.title || item.name || cleanSlug,
+                    query,
+                    year,
+                    targetAnilistId,
+                    alId
+                  )
                 });
               }
             });
@@ -368,7 +399,9 @@ function searchReanimeAnime(query, year, targetAnilistId = null) {
     }
     unique.sort((a, b) => b.score - a.score);
     if (unique.length > 0) {
-      console.log(`[Reanime] Search for "${query}" found ${unique.length} candidates. Top: "${unique[0].title}" (Score: ${unique[0].score}, AL: ${unique[0].anilistId})`);
+      console.log(
+        `[Reanime] Search for "${query}" found ${unique.length} candidates. Top: "${unique[0].title}" (Score: ${unique[0].score}, AL: ${unique[0].anilistId})`
+      );
     }
     return unique.length > 0 ? unique[0] : null;
   });
@@ -478,7 +511,7 @@ function extractFlixCloud(embedUrl, referer) {
     const response = yield fetch(pageUrl, {
       headers: {
         "User-Agent": USER_AGENT,
-        "Referer": referer || "https://reanime.to/",
+        Referer: referer || "https://reanime.to/",
         "sec-ch-ua": SEC_CH_UA,
         "sec-ch-ua-mobile": SEC_CH_UA_MOBILE,
         "sec-ch-ua-platform": SEC_CH_UA_PLATFORM
@@ -504,9 +537,9 @@ function extractFlixCloud(embedUrl, referer) {
     const tokenResponse = yield fetch(`${origin}/api/m3u8/${tokenRef}`, {
       headers: {
         "User-Agent": USER_AGENT,
-        "Accept": "application/json,*/*",
-        "Referer": pageUrl,
-        "Origin": origin,
+        Accept: "application/json,*/*",
+        Referer: pageUrl,
+        Origin: origin,
         "sec-ch-ua": SEC_CH_UA,
         "sec-ch-ua-mobile": SEC_CH_UA_MOBILE,
         "sec-ch-ua-platform": SEC_CH_UA_PLATFORM
@@ -537,8 +570,8 @@ function extractFlixCloud(embedUrl, referer) {
       title: data.video_title,
       subtitles: data.subtitles || [],
       headers: {
-        "Referer": "https://flixcloud.cc/",
-        "Origin": "https://flixcloud.cc",
+        Referer: "https://flixcloud.cc/",
+        Origin: "https://flixcloud.cc",
         "User-Agent": USER_AGENT,
         "sec-ch-ua": SEC_CH_UA,
         "sec-ch-ua-mobile": SEC_CH_UA_MOBILE,
@@ -591,7 +624,10 @@ function parseSsrData(html) {
     const obj = extractBalancedObject(html, dataIdx);
     if (obj && obj.includes(marker)) {
       try {
-        const jsonText = obj.replace(/([{,])\s*([A-Za-z_$][A-Za-z0-9_$]*|[0-9a-f]{4,}(?:_[0-9a-f]{4,})?)\s*:/g, '$1"$2":').replace(/,\s*([}\]])/g, "$1");
+        const jsonText = obj.replace(
+          /([{,])\s*([A-Za-z_$][A-Za-z0-9_$]*|[0-9a-f]{4,}(?:_[0-9a-f]{4,})?)\s*:/g,
+          '$1"$2":'
+        ).replace(/,\s*([}\]])/g, "$1");
         const parsed = JSON.parse(jsonText);
         return parsed.data || parsed;
       } catch (e) {
@@ -884,7 +920,11 @@ function decryptAesCbcUrl(rawKey, ivVal, cipherB64, seed) {
         const salt = CryptoJS.enc.Utf8.parse(seed);
         const passphrase = uint8ArrayToWordArray(rawKey);
         const iv = uint8ArrayToWordArray(parseBytes(ivVal));
-        const derivedKey = CryptoJS.PBKDF2(passphrase, salt, { keySize: 256 / 32, iterations: 1e3, hasher: CryptoJS.algo.SHA256 });
+        const derivedKey = CryptoJS.PBKDF2(passphrase, salt, {
+          keySize: 256 / 32,
+          iterations: 1e3,
+          hasher: CryptoJS.algo.SHA256
+        });
         const keyBytes = new Uint8Array(32);
         for (let i = 0; i < 32; i++) {
           keyBytes[i] = derivedKey.words[i >>> 2] >>> 24 - i % 4 * 8 & 255;
@@ -893,7 +933,11 @@ function decryptAesCbcUrl(rawKey, ivVal, cipherB64, seed) {
           keyBytes[i] ^= seed.charCodeAt(i % seed.length);
         }
         const finalKey = CryptoJS.SHA256(uint8ArrayToWordArray(keyBytes));
-        const decrypted = CryptoJS.AES.decrypt(cipherB64, finalKey, { iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 });
+        const decrypted = CryptoJS.AES.decrypt(cipherB64, finalKey, {
+          iv,
+          mode: CryptoJS.mode.CBC,
+          padding: CryptoJS.pad.Pkcs7
+        });
         const result = decrypted.toString(CryptoJS.enc.Utf8);
         if (result)
           return result.trim();
@@ -903,16 +947,19 @@ function decryptAesCbcUrl(rawKey, ivVal, cipherB64, seed) {
     }
     console.log("[FlixCloud] Using remote decryption helper...");
     try {
-      const response = yield fetch("https://id-mapping-api-nuvio-extraction-api.hf.space/decrypt/flixcloud", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          rawKey: uint8ArrayToBase64(rawKey),
-          ivVal,
-          cipherText: cipherB64,
-          seed
-        })
-      });
+      const response = yield fetch(
+        "https://id-mapping-api-nuvio-extraction-api.hf.space/decrypt/flixcloud",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            rawKey: uint8ArrayToBase64(rawKey),
+            ivVal,
+            cipherText: cipherB64,
+            seed
+          })
+        }
+      );
       if (!response.ok)
         throw new Error(`Remote decrypt HTTP ${response.status}`);
       const { decrypted } = yield response.json();
@@ -967,14 +1014,22 @@ function getStreams(tmdbId, mediaType = "tv", season = null, episode = null) {
         console.log(`[Reanime] Resolving sync info for TMDB ${tmdbId}...`);
         const syncInfo = yield getSyncInfo(tmdbId, mediaType, season, episodeNumber);
         searchTitle = syncInfo.title;
-        const syncResult = yield resolveByDate(syncInfo.releaseDate, syncInfo.title, episodeNumber, syncInfo.episodeTitle, syncInfo.dayIndex);
+        const syncResult = yield resolveByDate(
+          syncInfo.releaseDate,
+          syncInfo.title,
+          episodeNumber,
+          syncInfo.episodeTitle,
+          syncInfo.dayIndex
+        );
         if (syncResult && syncResult.alId) {
           alId = String(syncResult.alId);
           episodeNumber = syncResult.episode;
           searchTitle = syncResult.title;
           console.log(`[Reanime] Verified AniList ID: ${alId}, Episode: ${episodeNumber}`);
         } else {
-          console.warn(`[Reanime] Could not verify AniList ID via air-date. Falling back to basic search.`);
+          console.warn(
+            `[Reanime] Could not verify AniList ID via air-date. Falling back to basic search.`
+          );
           const tmdb = yield getTmdbInfo(tmdbId, mediaType);
           searchTitle = tmdb.title;
           searchYear = tmdb.year;
@@ -986,7 +1041,12 @@ function getStreams(tmdbId, mediaType = "tv", season = null, episode = null) {
       const languages = ["sub", "dub"];
       const streams = [];
       for (const language of languages) {
-        const { watchUrl, embeds } = yield getFlixEmbeds(anime.slug, episodeNumber, language, alId || anime.anilistId);
+        const { watchUrl, embeds } = yield getFlixEmbeds(
+          anime.slug,
+          episodeNumber,
+          language,
+          alId || anime.anilistId
+        );
         for (let i = 0; i < embeds.length; i++) {
           try {
             console.log(`[Reanime] Extracting locally: ${embeds[i]}`);

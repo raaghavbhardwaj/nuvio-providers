@@ -1,7 +1,8 @@
 /**
  * allmovieland - Built from src/allmovieland/
- * Generated: 2026-06-01T14:20:20.473Z
+ * Generated: 2026-09-07T16:01:56.627Z
  */
+"use strict";
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __defProps = Object.defineProperties;
@@ -71,7 +72,7 @@ var TMDB_BASE_URL = "https://api.themoviedb.org/3";
 var MAIN_URL = "https://allmovieland.one";
 var HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
-  "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+  Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
   "Accept-Language": "en-US,en;q=0.5"
 };
 
@@ -83,7 +84,7 @@ function getTMDBDetails(tmdbId, mediaType) {
     const url = `${TMDB_BASE_URL}/${endpoint}/${tmdbId}?api_key=${TMDB_API_KEY}&append_to_response=external_ids`;
     const response = yield fetch(url, {
       method: "GET",
-      headers: { "Accept": "application/json", "User-Agent": "Mozilla/5.0" }
+      headers: { Accept: "application/json", "User-Agent": "Mozilla/5.0" }
     });
     if (!response.ok)
       throw new Error(`TMDB API error: ${response.status}`);
@@ -188,7 +189,9 @@ function getStreams(tmdbId, mediaType = "movie", season = null, episode = null) 
         return [];
       }
       const embedLink = `${playerDomain}/play/${id}`;
-      const embedRes = yield fetch(embedLink, { headers: __spreadProps(__spreadValues({}, HEADERS), { Referer: selectedMedia.href }) });
+      const embedRes = yield fetch(embedLink, {
+        headers: __spreadProps(__spreadValues({}, HEADERS), { Referer: selectedMedia.href })
+      });
       const embedHtml = yield embedRes.text();
       const embed$ = import_cheerio_without_node_native.default.load(embedHtml);
       const lastScript = embed$("body > script").last().html() || "";
@@ -203,7 +206,7 @@ function getStreams(tmdbId, mediaType = "movie", season = null, episode = null) 
         fileUrl = `${playerDomain}${fileUrl}`;
       const fileRes = yield fetch(fileUrl, {
         method: "POST",
-        headers: __spreadProps(__spreadValues({}, HEADERS), { "X-CSRF-TOKEN": json.key, "Referer": embedLink })
+        headers: __spreadProps(__spreadValues({}, HEADERS), { "X-CSRF-TOKEN": json.key, Referer: embedLink })
       });
       const fileText = yield fileRes.text();
       let targetFiles = [];
@@ -234,34 +237,36 @@ function getStreams(tmdbId, mediaType = "movie", season = null, episode = null) 
         return [];
       }
       const streams = [];
-      yield Promise.all(targetFiles.map((fileObj) => __async(this, null, function* () {
-        try {
-          const playlistFile = fileObj.file.replace(/^~/, "");
-          const playlistUrl = `${playerDomain}/playlist/${playlistFile}.txt`;
-          const postRes = yield fetch(playlistUrl, {
-            method: "POST",
-            headers: __spreadProps(__spreadValues({}, HEADERS), { "X-CSRF-TOKEN": json.key, "Referer": embedLink })
-          });
-          const m3u8Url = (yield postRes.text()).trim();
-          if (m3u8Url && m3u8Url.startsWith("http")) {
-            const qualityStr = fileObj.title || "Unknown";
-            streams.push({
-              name: "AllMovieLand",
-              title: `AllMovieLand - ${qualityStr}`,
-              url: m3u8Url,
-              quality: qualityStr,
-              headers: {
-                "Referer": `${playerDomain}/`,
-                "Origin": playerDomain,
-                "User-Agent": HEADERS["User-Agent"]
-              },
-              provider: "allmovieland"
+      yield Promise.all(
+        targetFiles.map((fileObj) => __async(this, null, function* () {
+          try {
+            const playlistFile = fileObj.file.replace(/^~/, "");
+            const playlistUrl = `${playerDomain}/playlist/${playlistFile}.txt`;
+            const postRes = yield fetch(playlistUrl, {
+              method: "POST",
+              headers: __spreadProps(__spreadValues({}, HEADERS), { "X-CSRF-TOKEN": json.key, Referer: embedLink })
             });
+            const m3u8Url = (yield postRes.text()).trim();
+            if (m3u8Url && m3u8Url.startsWith("http")) {
+              const qualityStr = fileObj.title || "Unknown";
+              streams.push({
+                name: "AllMovieLand",
+                title: `AllMovieLand - ${qualityStr}`,
+                url: m3u8Url,
+                quality: qualityStr,
+                headers: {
+                  Referer: `${playerDomain}/`,
+                  Origin: playerDomain,
+                  "User-Agent": HEADERS["User-Agent"]
+                },
+                provider: "allmovieland"
+              });
+            }
+          } catch (e) {
+            console.error(`[AllMovieLand] Failed to extract stream: ${e.message}`);
           }
-        } catch (e) {
-          console.error(`[AllMovieLand] Failed to extract stream: ${e.message}`);
-        }
-      })));
+        }))
+      );
       return streams;
     } catch (error) {
       console.error(`[AllMovieLand] Error: ${error.message}`);

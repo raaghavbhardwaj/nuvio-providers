@@ -1,7 +1,8 @@
 /**
  * hianime - Built from src/hianime/
- * Generated: 2026-06-01T14:20:20.767Z
+ * Generated: 2026-09-07T16:01:56.652Z
  */
+"use strict";
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __defProps = Object.defineProperties;
@@ -72,8 +73,8 @@ var MEGACLOUD_BASE = "https://megacloud.bloggy.click";
 var TMDB_API_KEY = "1865f43a0549ca50d341dd9ab8b29f49";
 var DEFAULT_HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-  "Accept": "*/*",
-  "Connection": "keep-alive"
+  Accept: "*/*",
+  Connection: "keep-alive"
 };
 
 // src/hianime/utils.js
@@ -152,8 +153,8 @@ function extractSources(apiUrl, referer, origin, serverName, animeTitle, episode
       const json = yield fetchJson(apiUrl, {
         headers: {
           "X-Requested-With": "XMLHttpRequest",
-          "Referer": referer,
-          "Origin": origin
+          Referer: referer,
+          Origin: origin
         }
       });
       const file = (_a = json.sources) == null ? void 0 : _a.file;
@@ -167,8 +168,8 @@ function extractSources(apiUrl, referer, origin, serverName, animeTitle, episode
         url: file,
         quality: "Auto",
         headers: __spreadProps(__spreadValues({}, DEFAULT_HEADERS), {
-          "Referer": `${origin}/`,
-          "Origin": origin
+          Referer: `${origin}/`,
+          Origin: origin
         }),
         provider: "hianime",
         type: "m3u8"
@@ -193,7 +194,7 @@ function scrapeType(malId, episode, type, animeTitle) {
     const megaUrl = `${MEGAPLAY_BASE}/stream/mal/${malId}/${episode}/${type}`;
     try {
       const html = yield fetchText(megaUrl, {
-        headers: { "Referer": megaUrl }
+        headers: { Referer: megaUrl }
       });
       const $ = import_cheerio_without_node_native.default.load(html);
       const player = $("div.fix-area#megaplay-player");
@@ -210,37 +211,57 @@ function scrapeType(malId, episode, type, animeTitle) {
       }
       if (realId) {
         const vidPage = `${VIDWISH_BASE}/stream/s-2/${realId}/${type}`;
-        extractions.push((() => __async(this, null, function* () {
-          try {
-            const vidHtml = yield fetchText(vidPage, { headers: { "Referer": megaUrl } });
-            const $v = import_cheerio_without_node_native.default.load(vidHtml);
-            const vPlayer = $v("div.fix-area#megaplay-player");
-            const vDataId = vPlayer.attr("data-id");
-            if (vDataId) {
-              const apiUrl = `${VIDWISH_BASE}/stream/getSources?id=${vDataId}&id=${vDataId}`;
-              return yield extractSources(apiUrl, vidPage, VIDWISH_BASE, "Vidwish", animeTitle, episode, type);
+        extractions.push(
+          (() => __async(this, null, function* () {
+            try {
+              const vidHtml = yield fetchText(vidPage, { headers: { Referer: megaUrl } });
+              const $v = import_cheerio_without_node_native.default.load(vidHtml);
+              const vPlayer = $v("div.fix-area#megaplay-player");
+              const vDataId = vPlayer.attr("data-id");
+              if (vDataId) {
+                const apiUrl = `${VIDWISH_BASE}/stream/getSources?id=${vDataId}&id=${vDataId}`;
+                return yield extractSources(
+                  apiUrl,
+                  vidPage,
+                  VIDWISH_BASE,
+                  "Vidwish",
+                  animeTitle,
+                  episode,
+                  type
+                );
+              }
+            } catch (err) {
             }
-          } catch (err) {
-          }
-          return [];
-        }))());
+            return [];
+          }))()
+        );
       }
       if (realId) {
         const megacloudPage = `${MEGACLOUD_BASE}/stream/s-3/${realId}/${type}`;
-        extractions.push((() => __async(this, null, function* () {
-          try {
-            const mcHtml = yield fetchText(megacloudPage, { headers: { "Referer": megaUrl } });
-            const $m = import_cheerio_without_node_native.default.load(mcHtml);
-            const mPlayer = $m("div.fix-area#megaplay-player");
-            const mDataId = mPlayer.attr("data-id");
-            if (mDataId) {
-              const apiUrl = `${MEGACLOUD_BASE}/stream/getSources?id=${mDataId}&id=${mDataId}`;
-              return yield extractSources(apiUrl, megacloudPage, MEGACLOUD_BASE, "MegaCloud", animeTitle, episode, type);
+        extractions.push(
+          (() => __async(this, null, function* () {
+            try {
+              const mcHtml = yield fetchText(megacloudPage, { headers: { Referer: megaUrl } });
+              const $m = import_cheerio_without_node_native.default.load(mcHtml);
+              const mPlayer = $m("div.fix-area#megaplay-player");
+              const mDataId = mPlayer.attr("data-id");
+              if (mDataId) {
+                const apiUrl = `${MEGACLOUD_BASE}/stream/getSources?id=${mDataId}&id=${mDataId}`;
+                return yield extractSources(
+                  apiUrl,
+                  megacloudPage,
+                  MEGACLOUD_BASE,
+                  "MegaCloud",
+                  animeTitle,
+                  episode,
+                  type
+                );
+              }
+            } catch (err) {
             }
-          } catch (err) {
-          }
-          return [];
-        }))());
+            return [];
+          }))()
+        );
       }
       const results = yield Promise.all(extractions);
       for (const res of results) {

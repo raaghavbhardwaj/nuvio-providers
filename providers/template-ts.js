@@ -1,6 +1,6 @@
 /**
  * template-ts - Built from src/template-ts/
- * Generated: 2026-09-07T15:57:54.802Z
+ * Generated: 2026-09-07T16:01:56.680Z
  */
 "use strict";
 var __defProp = Object.defineProperty;
@@ -50,21 +50,21 @@ module.exports = __toCommonJS(template_ts_exports);
 
 // src/common/headers.ts
 var USER_AGENTS = {
-  desktop: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-  mobile: "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
-  androidTV: "Mozilla/5.0 (Linux; Android 12; BRAVIA 4K VH2 Build/BRAVIA_ATV4_EU) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36"
+  DESKTOP: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  MOBILE: "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
+  ANDROID_TV: "Mozilla/5.0 (Linux; Android 12; BRAVIA 4K VH2 Build/BRAVIA_ATV4_EU) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36"
 };
-function createHeaders(referer, userAgent = USER_AGENTS.desktop) {
+function createHeaders(referer, userAgent = USER_AGENTS.DESKTOP) {
   const headers = {
     "User-Agent": userAgent,
-    "Accept": "application/json, text/plain, */*",
+    Accept: "application/json, text/plain, */*",
     "Accept-Language": "en-US,en;q=0.9"
   };
   if (referer) {
     headers["Referer"] = referer;
     try {
-      const url = new URL(referer);
-      headers["Origin"] = url.origin;
+      const parsedUrl = new URL(referer);
+      headers["Origin"] = parsedUrl.origin;
     } catch (e) {
     }
   }
@@ -73,8 +73,8 @@ function createHeaders(referer, userAgent = USER_AGENTS.desktop) {
 
 // src/template-ts/index.ts
 var getStreams = (tmdbId, mediaType, season, episode) => __async(void 0, null, function* () {
-  const headers = createHeaders("https://example.com");
-  console.log(`[TemplateTS] Searching for TMDB ID: ${tmdbId}, Type: ${mediaType}`);
+  const headers = createHeaders("https://example.com", USER_AGENTS.DESKTOP);
+  console.log(`[TemplateTS] Resolving streams for TMDB ID: ${tmdbId}, Type: ${mediaType}`);
   const streams = [
     {
       name: "TemplateTS",

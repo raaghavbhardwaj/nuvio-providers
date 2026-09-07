@@ -1,7 +1,8 @@
 /**
  * movieblast - Built from src/movieblast/
- * Generated: 2026-06-01T14:20:20.783Z
+ * Generated: 2026-09-07T16:01:56.658Z
  */
+"use strict";
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __defProps = Object.defineProperties;
@@ -71,8 +72,8 @@ var HEADERS = {
   "x-request-x": APP_ID
 };
 var SEARCH_HEADERS = __spreadProps(__spreadValues({}, HEADERS), {
-  "hash256": "86dc03244adddb3cbedbf0ae36074a736ee293a64774b18e82a6244eafd0df30",
-  "packagename": APP_ID
+  hash256: "86dc03244adddb3cbedbf0ae36074a736ee293a64774b18e82a6244eafd0df30",
+  packagename: APP_ID
 });
 var SIGN_SECRET = "GJ8reydarI7Jqat9rvbAJKNQ9gY4DoEQF2H5nfuI1gi";
 var TMDB_API_KEY = "439c478a771f35c05022f9feabcca01c";
@@ -123,7 +124,7 @@ function getTMDBDetails(tmdbId, mediaType) {
     const url = `${TMDB_BASE_URL}/${endpoint}/${tmdbId}?api_key=${TMDB_API_KEY}`;
     const response = yield fetch(url, {
       method: "GET",
-      headers: { "Accept": "application/json", "User-Agent": "Mozilla/5.0" }
+      headers: { Accept: "application/json", "User-Agent": "Mozilla/5.0" }
     });
     if (!response.ok)
       throw new Error(`TMDB API error: ${response.status}`);
@@ -235,9 +236,9 @@ function getStreams(tmdbId, mediaType = "movie", season = null, episode = null) 
           quality: matchQuality(vid.server),
           headers: {
             "Accept-Encoding": "identity",
-            "Connection": "Keep-Alive",
+            Connection: "Keep-Alive",
             "Icy-MetaData": "1",
-            "Referer": "MovieBlast",
+            Referer: "MovieBlast",
             "User-Agent": "MovieBlast",
             "x-request-x": "com.movieblast"
           },

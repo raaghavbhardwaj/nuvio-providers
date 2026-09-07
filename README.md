@@ -1,266 +1,185 @@
-# Nuvio Providers
+# Nuvio Providers Workspace
 
-A collection of streaming providers for the Nuvio app. Providers are JavaScript modules that fetch streams from various sources.
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Hermes Compatible](https://img.shields.io/badge/Runtime-Hermes%20Compatible-blueviolet)](<>)
+[![Code Style: Google](https://img.shields.io/badge/code%20style-google-blue.svg)](https://google.github.io/styleguide/tsguide.html)
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
-📖 **[Read the Comprehensive Developer Guide](DOCUMENTATION.md)**
-
-## Quick Start
-
-### Using in Nuvio App
-
-1. Open **Nuvio** > **Settings** > **Plugins**
-2. Add this repository URL:
-   ```
-   https://raw.githubusercontent.com/tapframe/nuvio-providers/refs/heads/main
-   ```
-3. Refresh and enable the providers you want
+A high-performance, modular developer environment for building, testing, and maintaining streaming providers for the **Nuvio** media application.
 
 ---
 
-## Project Structure
+## 1. Architecture Overview
 
+Nuvio is a decentralized media player. Unlike traditional scrapers that run on remote servers, **Nuvio providers execute locally on the user's client device** (Android TV, Fire TV, Apple TV, Smart TVs, and Mobile) inside React Native's **Hermes JavaScript engine**.
+
+```mermaid
+flowchart LR
+    A[Nuvio App\nHermes Engine] -->|1. Reads Manifest| B[manifest.json]
+    A -->|2. Calls getStreams tmdbId| C[providers/*.js\nBundled CJS]
+    subgraph Development Pipeline
+        D[src/provider/\nTypeScript / ES6] -->|esbuild\ntarget: es2016| E[build.js]
+        E --> C
+    end
+    C -->|3. Fetches Streams| F[Target Video Hosts]
+    F -->|4. Playable .m3u8 / .mp4| A
 ```
-nuvio-providers/
-├── src/                    # Source files (multi-file development)
-│   ├── vixsrc/
-│   │   ├── index.js        # Main entry point
-│   │   ├── extractor.js    # Stream extraction
-│   │   ├── http.js         # HTTP utilities
-│   │   └── ...
-│   └── uhdmovies/
-│       └── ...
-│
-├── providers/              # Output directory (ready-to-use files)
-│   ├── vixsrc.js           # Bundled from src/vixsrc/
-│   ├── uhdmovies.js
-│   └── ...
-│
-├── manifest.json           # Provider registry
-├── build.js                # Build script
-└── package.json
+
+### Key Architectural Constraints:
+
+- **Hermes Engine Compatibility**: Dynamic code execution in Hermes does not natively support ES2017+ async/await without generator transpilation. Our build pipeline transpiles all source code to `es2016` target.
+- **Neutral Runtime**: Providers run in an environment supporting standard Web APIs (`fetch`, `URL`, `TextDecoder`), but **without Node.js built-ins** (no `fs`, `path`, or `child_process`).
+
+---
+
+## 2. Using in the Nuvio App
+
+To use this repository as a source in Nuvio:
+
+1. Open **Nuvio** on your device.
+2. Go to **Settings** → **Plugins** → **Add Plugin / Repository**.
+3. Enter your raw manifest URL:
+   ```text
+   https://raw.githubusercontent.com/raaghavbhardwaj/nuvio-providers/main/manifest.json
+   ```
+4. Save and toggle on the providers you wish to use.
+
+---
+
+## 3. Developer Quick Start
+
+### Prerequisites
+
+- **Node.js**: v18.0.0 or higher
+- **Package Manager**: [pnpm](https://pnpm.io/) (v9+)
+
+### Installation
+
+```bash
+# Clone the repository
+git clone git@github.com:raaghavbhardwaj/nuvio-providers.git
+cd nuvio-providers
+
+# Install dependencies
+pnpm install
 ```
 
 ---
 
-## Development
+## 4. Development Commands
 
-There are two ways to create providers:
+| Command                    | Description                                                          |
+| :------------------------- | :------------------------------------------------------------------- |
+| `pnpm build`               | Bundles all providers in `src/` into `providers/`                    |
+| `pnpm build <name>`        | Bundles only the specified provider (e.g. `pnpm build uhdmovies`)    |
+| `pnpm build:watch`         | Starts native `esbuild` watcher with sub-5ms incremental rebuilds    |
+| `pnpm test <name> [id]`    | Runs a provider in terminal and displays resolved streams & latency  |
+| `pnpm test <name> --probe` | Pings stream URLs to verify HTTP 200/206 status                      |
+| `pnpm validate`            | Validates `manifest.json` schema and file references                 |
+| `pnpm typecheck`           | Validates TypeScript types across the repository (`tsc --noEmit`)    |
+| `pnpm format`              | Formats all code using Prettier (Google Style)                       |
+| `pnpm check`               | Runs full verification (manifest validator, typecheck, format check) |
 
-### Option 1: Single-File Provider
+---
 
-For simple providers, you can create a single JavaScript file directly in the `providers/` directory.
+## 5. Building a New Provider
 
-**Important:** The app's JavaScript engine (Hermes) has limitations with `async/await` in dynamic code.
-- **Recommended**: Use Promise chains (`.then()`).
-- **Alternative**: Use `async/await` and run the transpiler command (see below).
+### Step 1: Create Provider Directory
 
-**Example (Promise Chains):**
-```javascript
-// providers/myprovider.js
+Create a new folder in `src/` named after your provider:
 
-function getStreams(tmdbId, mediaType, season, episode) {
-  console.log(`[MyProvider] Fetching ${mediaType} ${tmdbId}`);
-  
-  return fetch(`https://api.example.com/streams/${tmdbId}`)
-    .then(response => response.json())
-    .then(data => {
-      return data.streams.map(s => ({
-        name: "MyProvider",
-        title: s.title,
-        url: s.url,
-        quality: s.quality
-      }));
-    })
-    .catch(error => {
-      console.error('[MyProvider] Error:', error.message);
-      return [];
-    });
-}
-
-module.exports = { getStreams };
+```bash
+mkdir -p src/myprovider
 ```
 
-To register the provider, add it to `manifest.json`:
+### Step 2: Implement the Entry Point (`index.ts`)
+
+Write your scraper using the typed `GetStreams` interface:
+
+```typescript
+import type { GetStreams, Stream } from '../../types/nuvio';
+import { createHeaders, USER_AGENTS } from '../common/headers';
+
+export const getStreams: GetStreams = async (
+  tmdbId: string,
+  mediaType: 'movie' | 'tv',
+  season: number | null,
+  episode: number | null
+): Promise<Stream[]> => {
+  const headers = createHeaders('https://example.com', USER_AGENTS.DESKTOP);
+
+  // 1. Fetch metadata or search by TMDB ID
+  const response = await fetch(`https://api.example.com/source/${tmdbId}`, { headers });
+  const data = await response.json();
+
+  // 2. Return formatted streams
+  return [
+    {
+      name: 'MyProvider',
+      title: 'Server 1 - 1080p (HQ)',
+      url: data.streamUrl,
+      quality: '1080p',
+      format: 'm3u8',
+      headers,
+    },
+  ];
+};
+```
+
+### Step 3: Register in `manifest.json`
+
+Add your provider metadata to `manifest.json`:
+
 ```json
 {
   "id": "myprovider",
   "name": "My Provider",
-  "filename": "providers/myprovider.js",
-  "supportedTypes": ["movie", "tv"],
-  "enabled": true
-}
-```
-
-### Option 2: Multi-File Provider (Recommended)
-
-For complex providers, use the `src/` directory. This allows you to split code into multiple files. The build script automatically handles bundling and `async/await` transpilation.
-
-1. **Create source folder:**
-   ```bash
-   mkdir -p src/myprovider
-   ```
-
-2. **Create entry point** (`src/myprovider/index.js`):
-   ```javascript
-   import { fetchPage } from './http.js';
-   import { extractStreams } from './extractor.js';
-
-   // async/await is fully supported here
-   async function getStreams(tmdbId, mediaType, season, episode) {
-     const page = await fetchPage(tmdbId, mediaType, season, episode);
-     return extractStreams(page);
-   }
-
-   module.exports = { getStreams };
-   ```
-
-3. **Build:**
-   ```bash
-   node build.js myprovider
-   ```
-
-This generates `providers/myprovider.js`.
-
----
-
-## Building
-
-### Build Source Providers
-Bundles files from `src/<provider>/` into `providers/<provider>.js`.
-
-```bash
-# Build specific provider
-node build.js vixsrc
-
-# Build multiple
-node build.js vixsrc uhdmovies
-
-# Build all source providers
-node build.js
-```
-
-### Transpile Single-File Providers
-If you wrote a single-file provider using `async/await`, you must transpile it for compatibility.
-
-```bash
-# Transpile specific file
-node build.js --transpile myprovider.js
-
-# Transpile all applicable files in providers/
-node build.js --transpile
-```
-
-### Watch Mode
-Automatically rebuilds when files change.
-```bash
-npm run build:watch
-```
-
----
-
-## Testing
-
-Create a test script to identify issues before loading into the app.
-
-```javascript
-// test-myprovider.js
-const { getStreams } = require('./providers/myprovider.js');
-
-async function test() {
-  console.log('Testing...');
-  const streams = await getStreams('872585', 'movie'); // Oppenheimer ID
-  console.log('Streams found:', streams.length);
-}
-
-test();
-```
-
-Run with Node.js:
-```bash
-node test-myprovider.js
-```
-
----
-
-## Stream Object Format
-
-Providers must return an array of stream objects:
-
-```javascript
-{
-  name: "Provider Name",           // Provider identifier
-  title: "1080p Stream",           // Stream description
-  url: "https://...",              // Direct stream URL (m3u8, mp4, mkv)
-  quality: "1080p",                // Quality label
-  size: "2.5 GB",                  // Optional file size
-  headers: {                       // Optional headers for playback
-    "Referer": "https://source.com",
-    "User-Agent": "Mozilla/5.0..."
-  }
-}
-```
-
----
-
-## Available Modules
-
-Providers have access to these modules via `require()`:
-
-| Module | Usage |
-|--------|-------|
-| `cheerio-without-node-native` | HTML parsing |
-| `crypto-js` | Encryption/decryption |
-| `axios` | HTTP requests |
-
-Native `fetch` and `console` are also available globally.
-
----
-
-## Manifest Options
-
-The `manifest.json` file controls provider settings.
-
-```json
-{
-  "id": "unique-id",
-  "name": "Display Name",
-  "description": "Short description",
+  "description": "Fast HD streams",
   "version": "1.0.0",
   "author": "Your Name",
   "supportedTypes": ["movie", "tv"],
-  "filename": "providers/file.js",
+  "filename": "providers/myprovider.js",
   "enabled": true,
-  "logo": "https://url/to/logo.png",
-  "contentLanguage": ["en", "hi"],
-  "formats": ["mkv", "mp4"],
-  "limited": false,
-  "disabledPlatforms": ["ios"],
-  "supportsExternalPlayer": true
+  "formats": ["m3u8", "mp4"],
+  "logo": "https://example.com/icon.png"
 }
+```
+
+### Step 4: Build and Test
+
+```bash
+# Bundle your provider
+pnpm build myprovider
+
+# Test locally against Oppenheimer
+pnpm test myprovider 872585 --probe
+
+# Verify repository integrity
+pnpm check
 ```
 
 ---
 
-## Contributing
+## 6. Shared Utilities (`src/common/`)
 
-1. **Fork the repository**
-2. **Create a branch**: `git checkout -b add-myprovider`
-3. **Develop and test**
-4. **Build**: `node build.js myprovider`
-5. **Commit**: `git commit -m "Add MyProvider"`
-6. **Push and PR**
+To avoid duplicating boilerplate across scrapers, reusable utilities are provided:
+
+- **`src/common/headers.ts`**: Preset User-Agents (`DESKTOP`, `MOBILE`, `ANDROID_TV`) and `createHeaders()` helper that auto-derives Origin and Referer.
+- **`src/common/unpacker.ts`**: Dean Edwards `P.A.C.K.E.R` unpacker to decode obfuscated video player scripts (`eval(function(p,a,c,k,e,d)...)`).
 
 ---
 
-## License
+## 7. Standards & Quality Gates
 
-This project is licensed under the **GNU General Public License v3.0**.
+This repository enforces the **Google TypeScript Style Guide**:
+
+- Strict type safety (no untyped objects or implicit `any`).
+- Full TSDoc comments on exported functions.
+- Clean separation of concerns between extraction logic and HTTP utilities.
+- All commits must follow [Conventional Commits](CONTRIBUTING.md).
 
 ---
 
-## Disclaimer
+## 8. License
 
-- **No content is hosted by this repository.**
-- Providers fetch publicly available content from third-party websites.
-- Users are responsible for compliance with local laws.
-- For DMCA concerns, contact the actual content hosts.
+This project is licensed under the **GNU General Public License v3.0** (GPL-3.0). See [LICENSE](LICENSE) for details.

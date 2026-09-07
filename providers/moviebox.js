@@ -1,7 +1,8 @@
 /**
  * moviebox - Built from src/moviebox/
- * Generated: 2026-06-01T21:56:44.519Z
+ * Generated: 2026-09-07T16:01:56.661Z
  */
+"use strict";
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __defProps = Object.defineProperties;
@@ -69,11 +70,11 @@ var KEY_B64_ALT = "WHFuMm5uTzQxL0w5Mm8xaXVYaFNMSFRiWHZZNFo1Wlo2Mm04bVNMQQ==";
 var TMDB_API_KEY = "1865f43a0549ca50d341dd9ab8b29f49";
 var TMDB_BASE_URL = "https://api.themoviedb.org/3";
 var BRAND_MODELS = {
-  "Samsung": ["SM-S918B", "SM-A528B", "SM-M336B"],
-  "Xiaomi": ["2201117TI", "M2012K11AI", "Redmi Note 11"],
-  "OnePlus": ["LE2111", "CPH2449", "IN2023"],
-  "Google": ["Pixel 6", "Pixel 7", "Pixel 8"],
-  "Realme": ["RMX3085", "RMX3360", "RMX3551"]
+  Samsung: ["SM-S918B", "SM-A528B", "SM-M336B"],
+  Xiaomi: ["2201117TI", "M2012K11AI", "Redmi Note 11"],
+  OnePlus: ["LE2111", "CPH2449", "IN2023"],
+  Google: ["Pixel 6", "Pixel 7", "Pixel 8"],
+  Realme: ["RMX3085", "RMX3360", "RMX3551"]
 };
 var PACKAGE_INFO = {
   package_name: "com.community.mbox.in",
@@ -170,7 +171,15 @@ function movieBoxRequest(_0, _1) {
     const xClientToken = generateXClientToken(timestamp);
     const headerContentType = customHeaders["Content-Type"] || (body ? "application/json; charset=utf-8" : "application/json");
     const accept = customHeaders["Accept"] || "application/json";
-    const xTrSignature = generateXTrSignature(method, accept, headerContentType, url, body, false, timestamp);
+    const xTrSignature = generateXTrSignature(
+      method,
+      accept,
+      headerContentType,
+      url,
+      body,
+      false,
+      timestamp
+    );
     const xClientInfo = JSON.stringify(__spreadProps(__spreadValues({}, PACKAGE_INFO), {
       os: "android",
       os_version: "16",
@@ -186,7 +195,7 @@ function movieBoxRequest(_0, _1) {
       sp_code: ""
     }));
     const headers = __spreadValues({
-      "Accept": accept,
+      Accept: accept,
       "Content-Type": headerContentType,
       "x-client-token": xClientToken,
       "x-tr-signature": xTrSignature,
@@ -244,8 +253,8 @@ function fetchTmdbDetails(tmdbId, mediaType) {
       const res = yield fetch(url, {
         headers: {
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-          "Accept": "application/json",
-          "Connection": "keep-alive"
+          Accept: "application/json",
+          Connection: "keep-alive"
         }
       });
       const data = yield res.json();
@@ -377,7 +386,7 @@ function getStreamLinks(subjectId, season = 0, episode = 0, mediaTitle = "", med
       });
     }
     subjectIds.unshift({ id: subjectId, lang: originalLang });
-    const authHeaders = token ? { "Authorization": `Bearer ${token}` } : {};
+    const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
     const allStreams = [];
     for (const item of subjectIds) {
       try {
@@ -402,9 +411,9 @@ function getStreamLinks(subjectId, season = 0, episode = 0, mediaTitle = "", med
                 url: stream.url,
                 quality,
                 headers: __spreadValues({
-                  "Referer": API_BASE,
+                  Referer: API_BASE,
                   "User-Agent": `com.community.mbox.in/50020042 (Linux; U; Android 16; en_IN; MovieBox; Build/BP22.250325.006; Cronet/133.0.6876.3)`
-                }, stream.signCookie ? { "Cookie": stream.signCookie } : {}),
+                }, stream.signCookie ? { Cookie: stream.signCookie } : {}),
                 subtitles,
                 provider: "moviebox"
               });
@@ -424,7 +433,7 @@ function getStreamLinks(subjectId, season = 0, episode = 0, mediaTitle = "", med
                     url: video.resourceLink,
                     quality,
                     headers: {
-                      "Referer": API_BASE,
+                      Referer: API_BASE,
                       "User-Agent": `com.community.mbox.in/50020042 (Linux; U; Android 16; en_IN; MovieBox; Build/BP22.250325.006; Cronet/133.0.6876.3)`
                     },
                     provider: "moviebox"
@@ -454,7 +463,7 @@ function fetchSubtitles(subjectId, streamId, authHeaders, langLabel) {
               url: cap.url,
               language: cap.language || cap.lanName || cap.lan || "en",
               name: `${cap.lanName || cap.language || "Subtitle"} (${langLabel})`,
-              headers: { "Referer": API_BASE }
+              headers: { Referer: API_BASE }
             });
           }
         });
@@ -471,7 +480,7 @@ function fetchSubtitles(subjectId, streamId, authHeaders, langLabel) {
               url: cap.url,
               language: cap.lan || cap.lanName || cap.language || "en",
               name: `${cap.lanName || cap.lan || "Subtitle"} (${langLabel})`,
-              headers: { "Referer": API_BASE }
+              headers: { Referer: API_BASE }
             });
           }
         });

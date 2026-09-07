@@ -1,7 +1,8 @@
 /**
  * uhdmovies - Built from src/uhdmovies/
- * Generated: 2026-06-01T21:56:44.612Z
+ * Generated: 2026-09-07T16:01:56.682Z
  */
+"use strict";
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __defProps = Object.defineProperties;
@@ -72,10 +73,10 @@ var TMDB_API_KEY = "1865f43a0549ca50d341dd9ab8b29f49";
 var TMDB_BASE_URL = "https://api.themoviedb.org/3";
 var HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-  "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+  Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
   "Accept-Language": "en-US,en;q=0.9",
   "Cache-Control": "max-age=0",
-  "Connection": "keep-alive",
+  Connection: "keep-alive",
   "Upgrade-Insecure-Requests": "1"
 };
 
@@ -153,7 +154,7 @@ function bypassHrefli(url) {
       const skToken = skTokenMatch[1];
       const wpHttp2 = formData2["_wp_http2"] || "";
       const res4 = yield fetch(`${host}?go=${skToken}`, {
-        headers: __spreadProps(__spreadValues({}, HEADERS), { "Cookie": `${skToken}=${wpHttp2}` })
+        headers: __spreadProps(__spreadValues({}, HEADERS), { Cookie: `${skToken}=${wpHttp2}` })
       });
       const html4 = yield res4.text();
       const $4 = import_cheerio_without_node_native.default.load(html4);
@@ -181,7 +182,7 @@ function fetchTmdbDetails(tmdbId, mediaType) {
       const res = yield fetch(url, {
         headers: {
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          "Accept": "application/json"
+          Accept: "application/json"
         }
       });
       const data = yield res.json();
@@ -218,7 +219,7 @@ function extractVideoSeed(finallink) {
         headers: __spreadProps(__spreadValues({}, HEADERS), {
           "Content-Type": "application/x-www-form-urlencoded",
           "x-token": host,
-          "Referer": finallink
+          Referer: finallink
         }),
         body: `keys=${encodeURIComponent(token)}`
       });
@@ -259,7 +260,12 @@ function extractDriveseedPage(url) {
         if (text.includes("instant download")) {
           const instantRes = yield fetch(href, { headers: HEADERS, redirect: "follow" });
           if (instantRes.url && instantRes.url.includes("url=")) {
-            streams.push({ name: "Driveseed Instant", url: instantRes.url.split("url=")[1], quality, size });
+            streams.push({
+              name: "Driveseed Instant",
+              url: instantRes.url.split("url=")[1],
+              quality,
+              size
+            });
           }
         } else if (text.includes("resume cloud")) {
           const cloudRes = yield fetch(baseDomain + href, { headers: HEADERS });
@@ -288,7 +294,11 @@ function getStreams(tmdbId, mediaType, seasonNum = 1, episodeNum = 1) {
     const query = details.title;
     const searchUrl = `${mainUrl}/?s=${encodeURIComponent(query)}`;
     try {
-      const searchRes = yield fetch(searchUrl, { headers: __spreadProps(__spreadValues({}, HEADERS), { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" }) });
+      const searchRes = yield fetch(searchUrl, {
+        headers: __spreadProps(__spreadValues({}, HEADERS), {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        })
+      });
       const searchHtml = yield searchRes.text();
       const $search = import_cheerio_without_node_native2.default.load(searchHtml);
       let targetUrl = "";
@@ -304,7 +314,11 @@ function getStreams(tmdbId, mediaType, seasonNum = 1, episodeNum = 1) {
         console.log("[UHDMovies] No search result found");
         return [];
       }
-      const pageRes = yield fetch(targetUrl, { headers: __spreadProps(__spreadValues({}, HEADERS), { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" }) });
+      const pageRes = yield fetch(targetUrl, {
+        headers: __spreadProps(__spreadValues({}, HEADERS), {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        })
+      });
       const pageHtml = yield pageRes.text();
       const $ = import_cheerio_without_node_native2.default.load(pageHtml);
       const allStreams = [];
@@ -360,12 +374,14 @@ function getStreams(tmdbId, mediaType, seasonNum = 1, episodeNum = 1) {
         if (finalLink) {
           if (finalLink.includes("driveseed") || finalLink.includes("driveleech")) {
             const streams = yield extractDriveseedPage(finalLink);
-            finalResults.push(...streams.map((s) => __spreadProps(__spreadValues({}, s), {
-              name: "UHDMovies [Driveseed]",
-              title: `UHDMovies - ${s.quality} ${s.size ? `[${s.size}]` : ""}`,
-              quality: s.quality || item.quality,
-              provider: "uhdmovies"
-            })));
+            finalResults.push(
+              ...streams.map((s) => __spreadProps(__spreadValues({}, s), {
+                name: "UHDMovies [Driveseed]",
+                title: `UHDMovies - ${s.quality} ${s.size ? `[${s.size}]` : ""}`,
+                quality: s.quality || item.quality,
+                provider: "uhdmovies"
+              }))
+            );
           } else if (finalLink.includes("video-seed")) {
             const streamUrl = yield extractVideoSeed(finalLink);
             if (streamUrl) {
