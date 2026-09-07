@@ -180,7 +180,7 @@ function fetchAndParseM3U8(playlistUrl, mediaInfo, subtitles) {
           url: playlistUrl,
           quality: "Auto",
           size: "Unknown",
-          headers: VIDLINK_HEADERS,
+          headers: {},
           provider: "vidlink",
           subtitles: subtitles || []
         }];
@@ -194,7 +194,7 @@ function fetchAndParseM3U8(playlistUrl, mediaInfo, subtitles) {
           url: stream.url,
           quality,
           size: "Unknown",
-          headers: VIDLINK_HEADERS,
+          headers: {},
           provider: "vidlink",
           subtitles: subtitles || []
         };
@@ -207,7 +207,7 @@ function fetchAndParseM3U8(playlistUrl, mediaInfo, subtitles) {
         url: playlistUrl,
         quality: "Auto",
         size: "Unknown",
-        headers: VIDLINK_HEADERS,
+        headers: {},
         provider: "vidlink",
         subtitles: subtitles || []
       }];
@@ -278,7 +278,7 @@ function processVidlinkResponse(data, mediaInfo) {
             url: sub.url,
             language: sub.language || sub.lang || sub.label || "Unknown",
             name: sub.name || sub.label || sub.language || sub.lang || "Unknown",
-            headers: VIDLINK_HEADERS
+            headers: {}
           });
         }
       });
@@ -294,7 +294,7 @@ function processVidlinkResponse(data, mediaInfo) {
             url: qualityData.url,
             quality,
             size: "Unknown",
-            headers: VIDLINK_HEADERS,
+            headers: {},
             provider: "vidlink",
             subtitles
           });
@@ -324,7 +324,7 @@ function processVidlinkResponse(data, mediaInfo) {
         url: data.url,
         quality,
         size: "Unknown",
-        headers: VIDLINK_HEADERS,
+        headers: {},
         provider: "vidlink",
         subtitles
       });
@@ -338,7 +338,7 @@ function processVidlinkResponse(data, mediaInfo) {
             url: stream.url,
             quality,
             size: stream.size || "Unknown",
-            headers: VIDLINK_HEADERS,
+            headers: {},
             provider: "vidlink",
             subtitles
           });
@@ -354,7 +354,7 @@ function processVidlinkResponse(data, mediaInfo) {
             url: link.url,
             quality,
             size: link.size || "Unknown",
-            headers: VIDLINK_HEADERS,
+            headers: {},
             provider: "vidlink",
             subtitles
           });
@@ -374,7 +374,7 @@ function processVidlinkResponse(data, mediaInfo) {
               url: value,
               quality,
               size: "Unknown",
-              headers: VIDLINK_HEADERS,
+              headers: {},
               provider: "vidlink",
               subtitles
             });
