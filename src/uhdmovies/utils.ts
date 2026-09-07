@@ -15,7 +15,7 @@ export async function getMainUrl() {
   }
 }
 
-export function getBaseUrl(url) {
+export function getBaseUrl(url: string) {
   try {
     const urlObj = new URL(url);
     return `${urlObj.protocol}//${urlObj.host}`;
@@ -24,7 +24,7 @@ export function getBaseUrl(url) {
   }
 }
 
-export function fixUrl(url, domain) {
+export function fixUrl(url: string, domain: string) {
   if (!url) return '';
   if (url.startsWith('http')) return url;
   if (url.startsWith('//')) return `https:${url}`;
@@ -32,16 +32,16 @@ export function fixUrl(url, domain) {
   return `${domain}/${url}`;
 }
 
-export async function bypassHrefli(url) {
+export async function bypassHrefli(url: string): Promise<string | null> {
   const host = getBaseUrl(url);
   try {
     const res1 = await fetch(url, { headers: HEADERS });
     const html1 = await res1.text();
     const $1 = cheerio.load(html1);
     const formUrl1 = $1('form#landing').attr('action');
-    const formData1 = {};
-    $1('form#landing input').each((_, el) => {
-      formData1[$1(el).attr('name')] = $1(el).attr('value') || '';
+    const formData1: Record<string, string> = {};
+    $1('form#landing input').each((_: any, el: any) => {
+      formData1[$1(el).attr('name') as string] = $1(el).attr('value') || '';
     });
 
     const res2 = await fetch(formUrl1, {
@@ -52,9 +52,9 @@ export async function bypassHrefli(url) {
     const html2 = await res2.text();
     const $2 = cheerio.load(html2);
     const formUrl2 = $2('form#landing').attr('action');
-    const formData2 = {};
-    $2('form#landing input').each((_, el) => {
-      formData2[$2(el).attr('name')] = $2(el).attr('value') || '';
+    const formData2: Record<string, string> = {};
+    $2('form#landing input').each((_: any, el: any) => {
+      formData2[$2(el).attr('name') as string] = $2(el).attr('value') || '';
     });
 
     const res3 = await fetch(formUrl2, {
@@ -90,7 +90,7 @@ export async function bypassHrefli(url) {
   }
 }
 
-export async function fetchTmdbDetails(tmdbId, mediaType) {
+export async function fetchTmdbDetails(tmdbId: string, mediaType: string): Promise<any> {
   try {
     const url = `${TMDB_BASE_URL}/${mediaType}/${tmdbId}?api_key=${TMDB_API_KEY}&append_to_response=external_ids`;
     const res = await fetch(url, {
@@ -112,7 +112,7 @@ export async function fetchTmdbDetails(tmdbId, mediaType) {
   }
 }
 
-export function getIndexQuality(str) {
+export function getIndexQuality(str: string): string {
   if (!str) return 'Unknown';
   const match = str.match(/(\d{3,4})[pP]/);
   if (match) return match[1] + 'p';
@@ -120,7 +120,7 @@ export function getIndexQuality(str) {
   return 'Unknown';
 }
 
-export async function extractVideoSeed(finallink) {
+export async function extractVideoSeed(finallink: string): Promise<any> {
   try {
     const urlObj = new URL(finallink);
     const host = urlObj.host || 'video-seed.xyz';
@@ -145,7 +145,7 @@ export async function extractVideoSeed(finallink) {
   }
 }
 
-export async function extractDriveseedPage(url) {
+export async function extractDriveseedPage(url: string): Promise<any> {
   const streams = [];
   try {
     let pageUrl = url;

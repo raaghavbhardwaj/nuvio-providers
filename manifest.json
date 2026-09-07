@@ -14,6 +14,19 @@
       "formats": ["m3u8"],
       "logo": "https://www.google.com/s2/favicons?domain=cinejoy.to&sz=128",
       "contentLanguage": ["en"]
+    },
+    {
+      "id": "uhdmovies",
+      "name": "UHDMovies",
+      "description": "Raw 4K and 1080p high bitrate Direct Download streams (Drive/CF Workers). Slower load times but flawless quality.",
+      "version": "1.0.0",
+      "author": "raaghav",
+      "supportedTypes": ["movie", "tv"],
+      "filename": "providers/uhdmovies.js",
+      "enabled": true,
+      "formats": ["mp4", "mkv"],
+      "logo": "https://www.google.com/s2/favicons?domain=uhdmovies.pink&sz=128",
+      "contentLanguage": ["en"]
     }
   ]
 }

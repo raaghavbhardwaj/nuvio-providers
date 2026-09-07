@@ -9,7 +9,7 @@ import {
   extractVideoSeed,
 } from './utils.js';
 
-async function getStreams(tmdbId, mediaType, seasonNum = 1, episodeNum = 1) {
+export async function getStreams(tmdbId: string, mediaType: string, seasonNum: number = 1, episodeNum: number = 1): Promise<any[]> {
   console.log(`[UHDMovies] Querying streams for TMDB: ${tmdbId}, Type: ${mediaType}`);
 
   const details = await fetchTmdbDetails(tmdbId, mediaType);
@@ -30,7 +30,7 @@ async function getStreams(tmdbId, mediaType, seasonNum = 1, episodeNum = 1) {
     const $search = cheerio.load(searchHtml);
 
     let targetUrl = '';
-    $search('article.gridlove-post, article.latestPost').each((i, el) => {
+    $search('article.gridlove-post, article.latestPost').each((i: number, el: any) => {
       const title =
         $search(el).find('h1.sanket, h2.title a').text() ||
         $search(el).find('a').attr('title') ||
@@ -60,11 +60,11 @@ async function getStreams(tmdbId, mediaType, seasonNum = 1, episodeNum = 1) {
     const pageHtml = await pageRes.text();
     const $ = cheerio.load(pageHtml);
 
-    const allStreams = [];
+    const allStreams: any[] = [];
 
     if (mediaType === 'movie') {
       const iframeRegex = /\[.*\]/;
-      $('div.entry-content > p, div.entry-content > div').each((i, el) => {
+      $('div.entry-content > p, div.entry-content > div').each((i: number, el: any) => {
         const text = $(el).text();
         if (iframeRegex.test(text)) {
           const quality = getIndexQuality(text);
@@ -78,10 +78,10 @@ async function getStreams(tmdbId, mediaType, seasonNum = 1, episodeNum = 1) {
       });
     } else {
       // TV Series
-      const episodesMap = {};
+      const episodesMap: Record<string, string[]> = {};
       let currentSeason = seasonNum; // Default to requested
 
-      $('pre, p, a, h3').each((i, el) => {
+      $('pre, p, a, h3').each((i: number, el: any) => {
         const text = $(el).text().trim();
         const seasonMatch = text.match(/(?:season\s*|S)(\d+)/i);
         if (seasonMatch && text.length < 20) {
@@ -108,7 +108,7 @@ async function getStreams(tmdbId, mediaType, seasonNum = 1, episodeNum = 1) {
 
       const targetKey = `${seasonNum}-${episodeNum}`;
       const urls = episodesMap[targetKey] || [];
-      urls.forEach(url => {
+      urls.forEach((url: string) => {
         allStreams.push({ url, quality: 'Unknown' });
       });
     }
@@ -124,7 +124,7 @@ async function getStreams(tmdbId, mediaType, seasonNum = 1, episodeNum = 1) {
         if (finalLink.includes('driveseed') || finalLink.includes('driveleech')) {
           const streams = await extractDriveseedPage(finalLink);
           finalResults.push(
-            ...streams.map(s => ({
+            ...(Array.isArray(streams) ? streams : []).map((s: any) => ({
               ...s,
               name: 'UHDMovies [Driveseed]',
               title: `UHDMovies - ${s.quality} ${s.size ? `[${s.size}]` : ''}`,
@@ -157,7 +157,7 @@ async function getStreams(tmdbId, mediaType, seasonNum = 1, episodeNum = 1) {
 
     return finalResults;
   } catch (e) {
-    console.error('[UHDMovies] Error:', e.message);
+    console.error('[UHDMovies] Error:', (e as Error).message);
     return [];
   }
 }
