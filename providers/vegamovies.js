@@ -1,6 +1,6 @@
 /**
  * vegamovies - Built from src/vegamovies/
- * Generated: 2026-09-08T07:35:20.017Z
+ * Generated: 2026-09-08T07:43:59.637Z
  */
 "use strict";
 var __create = Object.create;
@@ -80,8 +80,19 @@ function getStreams(tmdbId, mediaType = "movie", season = null, episode = null) 
       const searchData = yield searchRes.json();
       if (!searchData.hits || searchData.hits.length === 0)
         return [];
-      const hit = searchData.hits[0].document;
+      let hit = searchData.hits[0].document;
+      if (mediaType === "tv" && season) {
+        const targetSeason = `season ${season}`;
+        const targetS = `s${Number(season) < 10 ? "0" + season : season}`;
+        const seasonHit = searchData.hits.find((h) => {
+          const t = h.document.post_title.toLowerCase();
+          return t.includes(targetSeason) || t.includes(targetS) || t.match(new RegExp(`season.*?\\b${season}\\b`));
+        });
+        if (seasonHit)
+          hit = seasonHit.document;
+      }
       const postUrl = MAIN_URL + hit.permalink;
+      console.log("Fetching URL:", postUrl);
       const postRes = yield fetch(postUrl, { headers: HEADERS });
       const postHtml = yield postRes.text();
       const $ = import_cheerio_without_node_native.default.load(postHtml);
@@ -132,7 +143,8 @@ function getStreams(tmdbId, mediaType = "movie", season = null, episode = null) 
               let epLink = null;
               nex$("h4, h3, h5, div").each((_, epEl) => {
                 const epText = nex$(epEl).text().toLowerCase();
-                if (epText.includes("episode") && (epText.includes(" " + episode + " ") || epText.includes(":" + episode + ":") || epText.includes(" " + episode + ":-") || epText.includes(" " + episode))) {
+                const epRegex = new RegExp("episode[^0-9]*0?" + episode + "\\b", "i");
+                if (epRegex.test(epText)) {
                   const nextP = nex$(epEl).nextAll("p").first();
                   epLink = nextP.find('a[href*="vcloud.fit"]').attr("href") || epLink;
                 }

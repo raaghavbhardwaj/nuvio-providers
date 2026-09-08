@@ -17,10 +17,19 @@ export async function getStreams(tmdbId: string, mediaType: string = 'movie', se
     if (!searchData.hits || searchData.hits.length === 0) return [];
     
     // Pick the most relevant hit
-    const hit = searchData.hits[0].document;
+    let hit = searchData.hits[0].document;
+    if (mediaType === 'tv' && season) {
+        const targetSeason = `season ${season}`;
+        const targetS = `s${Number(season) < 10 ? '0' + season : season}`;
+        const seasonHit = searchData.hits.find((h: any) => {
+            const t = h.document.post_title.toLowerCase();
+            return t.includes(targetSeason) || t.includes(targetS) || t.match(new RegExp(`season.*?\\b${season}\\b`));
+        });
+        if (seasonHit) hit = seasonHit.document;
+    }
     const postUrl = MAIN_URL + hit.permalink;
 
-    // 3. Fetch Post HTML
+    console.log("Fetching URL:", postUrl); // 3. Fetch Post HTML
     const postRes = await fetch(postUrl, { headers: HEADERS });
     const postHtml = await postRes.text();
     const $ = cheerio.load(postHtml);
@@ -85,7 +94,8 @@ export async function getStreams(tmdbId: string, mediaType: string = 'movie', se
                 let epLink = null;
                 nex$('h4, h3, h5, div').each((_, epEl) => {
                     const epText = nex$(epEl).text().toLowerCase();
-                    if (epText.includes('episode') && (epText.includes(' ' + episode + ' ') || epText.includes(':' + episode + ':') || epText.includes(' ' + episode + ':-') || epText.includes(' ' + episode))) {
+                    const epRegex = new RegExp('episode[^0-9]*0?' + episode + '\\b', 'i');
+                    if (epRegex.test(epText)) {
                         const nextP = nex$(epEl).nextAll('p').first();
                         epLink = nextP.find('a[href*="vcloud.fit"]').attr('href') || epLink;
                     }
