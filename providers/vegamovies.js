@@ -1,6 +1,6 @@
 /**
  * vegamovies - Built from src/vegamovies/
- * Generated: 2026-09-08T07:14:36.293Z
+ * Generated: 2026-09-08T07:35:20.017Z
  */
 "use strict";
 var __create = Object.create;
@@ -86,28 +86,39 @@ function getStreams(tmdbId, mediaType = "movie", season = null, episode = null) 
       const postHtml = yield postRes.text();
       const $ = import_cheerio_without_node_native.default.load(postHtml);
       const streams = [];
-      $("h5, h4").each((i, el) => {
+      $("h5, h4, h3").each((i, el) => {
         const headerText = $(el).text();
-        const nextP = $(el).next("p");
-        if (nextP.length > 0) {
-          const vcloudLink = nextP.find('a[href*="nexdrive.fit"], a[href*="vcloud.fit"], a[href*="fastdl.zip"]').attr("href");
-          if (vcloudLink) {
-            let quality = "Unknown";
-            if (headerText.includes("2160p") || headerText.includes("4K"))
-              quality = "4K";
-            else if (headerText.includes("1080p"))
-              quality = "1080p";
-            else if (headerText.includes("720p"))
-              quality = "720p";
-            else if (headerText.includes("480p"))
-              quality = "480p";
-            let size = "Unknown";
-            const sizeMatch = headerText.match(/\[([^\]]+GB|[^\]]+MB)\]/i);
-            if (sizeMatch)
-              size = sizeMatch[1];
-            streams.push({ quality, size, url: vcloudLink, name: "V-Cloud" });
+        let quality = "Unknown";
+        if (headerText.includes("2160p") || headerText.includes("4K"))
+          quality = "4K";
+        else if (headerText.includes("1080p"))
+          quality = "1080p";
+        else if (headerText.includes("720p"))
+          quality = "720p";
+        else if (headerText.includes("480p"))
+          quality = "480p";
+        let size = "Unknown";
+        const sizeMatch = headerText.match(/\[([^\]]+GB|[^\]]+MB)\]/i);
+        if (sizeMatch)
+          size = sizeMatch[1];
+        $(el).nextUntil("h5, h4, h3", "p").each((j, pEl) => {
+          const pText = $(pEl).text();
+          let specificLink = void 0;
+          $(pEl).find("a").each((_, aEl) => {
+            const aText = $(aEl).text().toLowerCase();
+            const aHref = $(aEl).attr("href") || "";
+            if (aText.includes("v-cloud") || aText.includes("vcloud") || aText.includes("fastserver") || aHref.includes("vcloud.fit") || aHref.includes("fastdl.zip")) {
+              specificLink = aHref;
+            }
+          });
+          let vcloudLink = specificLink;
+          if (!vcloudLink && $(pEl).find("a").length === 1) {
+            vcloudLink = $(pEl).find("a").attr("href");
           }
-        }
+          if (vcloudLink) {
+            streams.push({ quality, size, url: vcloudLink, name: "V-Cloud", epIndex: j + 1 });
+          }
+        });
       });
       const finalStreams = [];
       for (const stream of streams) {
@@ -117,7 +128,27 @@ function getStreams(tmdbId, mediaType = "movie", season = null, episode = null) 
             const nexRes = yield fetch(vcloudUrl, { headers: HEADERS });
             const nexHtml = yield nexRes.text();
             const nex$ = import_cheerio_without_node_native.default.load(nexHtml);
-            vcloudUrl = nex$('a[href*="vcloud.fit"]').attr("href") || vcloudUrl;
+            if (mediaType === "tv" && episode) {
+              let epLink = null;
+              nex$("h4, h3, h5, div").each((_, epEl) => {
+                const epText = nex$(epEl).text().toLowerCase();
+                if (epText.includes("episode") && (epText.includes(" " + episode + " ") || epText.includes(":" + episode + ":") || epText.includes(" " + episode + ":-") || epText.includes(" " + episode))) {
+                  const nextP = nex$(epEl).nextAll("p").first();
+                  epLink = nextP.find('a[href*="vcloud.fit"]').attr("href") || epLink;
+                }
+              });
+              if (epLink) {
+                vcloudUrl = epLink;
+              } else {
+                if (nex$('a[href*="vcloud.fit"]').length === 1) {
+                  vcloudUrl = nex$('a[href*="vcloud.fit"]').attr("href") || vcloudUrl;
+                } else {
+                  continue;
+                }
+              }
+            } else {
+              vcloudUrl = nex$('a[href*="vcloud.fit"]').attr("href") || vcloudUrl;
+            }
           }
           if (vcloudUrl.includes("vcloud.fit")) {
             const vRes = yield fetch(vcloudUrl, { headers: HEADERS });
@@ -132,7 +163,7 @@ function getStreams(tmdbId, mediaType = "movie", season = null, episode = null) 
               if (fslv2) {
                 finalStreams.push({
                   server: "VegaMovies Direct",
-                  title: stream.size ? `${stream.quality} - ${stream.size}` : `VegaMovies ${stream.quality}`,
+                  title: (mediaType === "tv" ? `Ep ${episode || stream.epIndex} ` : "") + (stream.size ? `${stream.quality} - ${stream.size}` : `VegaMovies ${stream.quality}`),
                   quality: stream.quality,
                   size: stream.size,
                   url: fslv2
