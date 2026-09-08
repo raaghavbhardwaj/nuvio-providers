@@ -14,6 +14,19 @@
       "formats": ["m3u8"],
       "logo": "https://www.google.com/s2/favicons?domain=cinejoy.to&sz=128",
       "contentLanguage": ["en"]
+    },
+    {
+      "id": "vegamovies",
+      "name": "Vegamovies",
+      "description": "High quality 1080p/4K direct links with V-Cloud extraction. No Cloudflare blocking.",
+      "version": "1.0.0",
+      "author": "raaghav",
+      "supportedTypes": ["movie", "tv"],
+      "filename": "providers/vegamovies.js",
+      "enabled": true,
+      "formats": ["mkv", "mp4"],
+      "logo": "https://www.google.com/s2/favicons?domain=vegamovies.futbol&sz=128",
+      "contentLanguage": ["en"]
     }
   ]
 }
