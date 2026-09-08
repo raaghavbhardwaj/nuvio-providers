@@ -235,7 +235,7 @@ export async function getStreams(tmdbId: string, mediaType: string = 'movie', se
       (a, b) => (qualityOrder[b.quality] || -3) - (qualityOrder[a.quality] || -3)
     );
   } catch (error) {
-    console.error(`[HDHub4u] Scraping error: ${(error as Error).message}`);
+    console.error(error);
     return [];
   }
 }
