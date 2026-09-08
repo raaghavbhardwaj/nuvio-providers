@@ -1,6 +1,6 @@
 /**
  * vegamovies - Built from src/vegamovies/
- * Generated: 2026-09-08T07:43:59.637Z
+ * Generated: 2026-09-08T07:44:17.471Z
  */
 "use strict";
 var __create = Object.create;
@@ -84,10 +84,18 @@ function getStreams(tmdbId, mediaType = "movie", season = null, episode = null) 
       if (mediaType === "tv" && season) {
         const targetSeason = `season ${season}`;
         const targetS = `s${Number(season) < 10 ? "0" + season : season}`;
-        const seasonHit = searchData.hits.find((h) => {
+        const tmdbTitle = title.toLowerCase().replace(/[^a-z0-9 ]/g, "");
+        let seasonHit = searchData.hits.find((h) => {
           const t = h.document.post_title.toLowerCase();
-          return t.includes(targetSeason) || t.includes(targetS) || t.match(new RegExp(`season.*?\\b${season}\\b`));
+          const cleanT = t.replace(/[^a-z0-9 ]/g, "");
+          return cleanT.includes("download " + tmdbTitle + " ") && (t.includes(targetSeason) || t.includes(targetS) || t.match(new RegExp(`season.*?\\b${season}\\b`)));
         });
+        if (!seasonHit) {
+          seasonHit = searchData.hits.find((h) => {
+            const t = h.document.post_title.toLowerCase();
+            return t.includes(targetSeason) || t.includes(targetS) || t.match(new RegExp(`season.*?\\b${season}\\b`));
+          });
+        }
         if (seasonHit)
           hit = seasonHit.document;
       }
