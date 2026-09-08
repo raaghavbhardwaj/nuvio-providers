@@ -72,7 +72,7 @@ export async function getStreams(tmdbId: string, mediaType: string = 'movie', se
         // Find var url = atob(atob('...'))
         const atobMatch = vHtml.match(/var url = atob\(atob\('([^']+)'\)\)/);
         if (atobMatch) {
-          const decoded = Buffer.from(Buffer.from(atobMatch[1], 'base64').toString('utf8'), 'base64').toString('utf8');
+          const decoded = atob(atob(atobMatch[1]));
           
           const tRes = await fetch(decoded, { headers: HEADERS });
           const tHtml = await tRes.text();

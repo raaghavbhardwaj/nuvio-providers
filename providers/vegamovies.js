@@ -1,6 +1,6 @@
 /**
  * vegamovies - Built from src/vegamovies/
- * Generated: 2026-09-08T07:10:44.506Z
+ * Generated: 2026-09-08T07:14:36.293Z
  */
 "use strict";
 var __create = Object.create;
@@ -124,7 +124,7 @@ function getStreams(tmdbId, mediaType = "movie", season = null, episode = null) 
             const vHtml = yield vRes.text();
             const atobMatch = vHtml.match(/var url = atob\(atob\('([^']+)'\)\)/);
             if (atobMatch) {
-              const decoded = Buffer.from(Buffer.from(atobMatch[1], "base64").toString("utf8"), "base64").toString("utf8");
+              const decoded = atob(atob(atobMatch[1]));
               const tRes = yield fetch(decoded, { headers: HEADERS });
               const tHtml = yield tRes.text();
               const $$ = import_cheerio_without_node_native.default.load(tHtml);
