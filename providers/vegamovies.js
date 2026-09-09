@@ -1,6 +1,6 @@
 /**
  * vegamovies - Built from src/vegamovies/
- * Generated: 2026-09-09T05:52:55.989Z
+ * Generated: 2026-09-09T05:55:00.348Z
  */
 "use strict";
 var __create = Object.create;
@@ -147,7 +147,10 @@ function getStreams(tmdbId, mediaType = "movie", season = null, episode = null) 
         });
       });
       const finalStreams = [];
-      yield Promise.all(streams.map((stream) => __async(this, null, function* () {
+      const qualityOrder = { "4K": 4, "1080p": 3, "720p": 2, "480p": 1, "Unknown": 0 };
+      streams.sort((a, b) => (qualityOrder[b.quality] || 0) - (qualityOrder[a.quality] || 0));
+      const topStreams = streams.slice(0, 2);
+      yield Promise.all(topStreams.map((stream) => __async(this, null, function* () {
         try {
           let vcloudUrl = stream.url;
           if (vcloudUrl.includes("nexdrive.fit")) {
@@ -234,7 +237,6 @@ function getStreams(tmdbId, mediaType = "movie", season = null, episode = null) 
           console.error("V-Cloud Resolve Error", e);
         }
       })));
-      const qualityOrder = { "4K": 4, "1080p": 3, "720p": 2, "480p": 1, "Unknown": 0 };
       finalStreams.sort((a, b) => (qualityOrder[b.quality] || 0) - (qualityOrder[a.quality] || 0));
       return finalStreams;
     } catch (error) {

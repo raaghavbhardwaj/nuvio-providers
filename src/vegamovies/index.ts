@@ -95,7 +95,14 @@ export async function getStreams(tmdbId: string, mediaType: string = 'movie', se
     const finalStreams: any[] = [];
     
     // 4. Resolve VCloud links
-    await Promise.all(streams.map(async (stream) => {
+    
+    const qualityOrder: Record<string, number> = { '4K': 4, '1080p': 3, '720p': 2, '480p': 1, 'Unknown': 0 };
+    streams.sort((a, b) => (qualityOrder[b.quality] || 0) - (qualityOrder[a.quality] || 0));
+    // Only keep the top 2 streams to prevent ScraperAPI from taking 85 seconds
+    const topStreams = streams.slice(0, 2);
+    
+    await Promise.all(topStreams.map(async (stream) => {
+
       try {
         
         
@@ -201,7 +208,6 @@ export async function getStreams(tmdbId: string, mediaType: string = 'movie', se
     }));
     
     // Sort
-    const qualityOrder: Record<string, number> = { '4K': 4, '1080p': 3, '720p': 2, '480p': 1, 'Unknown': 0 };
     finalStreams.sort((a, b) => (qualityOrder[b.quality] || 0) - (qualityOrder[a.quality] || 0));
 
     return finalStreams;
