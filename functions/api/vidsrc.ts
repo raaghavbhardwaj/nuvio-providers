@@ -1,42 +1,32 @@
 /**
- * @fileoverview VidSrc provider for Nuvio.
- * Resolves high-speed adaptive HLS streams (up to 4K UHD) with subtitles.
+ * @fileoverview Cloudflare Pages Function / Edge API for VidSrc streaming.
+ * Handles the upstream API decryption on Cloudflare Edge with custom Referer headers
+ * and returns clean JSON for Nuvio mobile client.
  */
 
-import type { GetStreams, MediaType, Quality, Stream, Subtitle } from '../../types/nuvio';
-import { API_BASE, DEC_API_URL, SERVERS, SUBTITLES_API_URL, VIDSRC_HEADERS } from './constants';
+const VIDSRC_HEADERS: Record<string, string> = {
+  Accept: '*/*',
+  Origin: 'https://player.videasy.to',
+  Referer: 'https://player.videasy.to/',
+  'User-Agent':
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
+};
 
-const VIDSRC_EDGE_API = 'https://nuvio-providers.pages.dev/api/vidsrc';
+const CORS_HEADERS: Record<string, string> = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Content-Type': 'application/json',
+};
 
-interface TmdbResponse {
-  title?: string;
-  name?: string;
-  release_date?: string;
-  first_air_date?: string;
-  imdb_id?: string;
-  external_ids?: {
-    imdb_id?: string;
-  };
-}
+const API_BASE = 'https://api.speedracelight.com';
+const DEC_API_URL = 'https://enc-dec.app/api/dec-videasy';
+const SUBTITLES_API_URL = 'https://subtitles.shegu.st/subtitles';
 
-interface SeedResponse {
-  seed: string;
-}
-
-interface DecryptedSource {
-  quality: string;
-  url: string;
-}
-
-interface DecryptedResult {
-  sources?: DecryptedSource[];
-  playlist?: string;
-}
-
-interface DecryptedResponse {
-  status: number;
-  result?: DecryptedResult;
-}
+const SERVERS = [
+  { id: 'cdn', name: 'VidSrc [Yoru]' },
+  { id: 'm4uhd', name: 'VidSrc [Breach]' },
+] as const;
 
 const QUALITY_ORDER: Record<string, number> = {
   '4K': 5,
@@ -50,7 +40,7 @@ const QUALITY_ORDER: Record<string, number> = {
   Unknown: -2,
 };
 
-function normalizeQuality(q: string): Quality {
+function normalizeQuality(q: string): string {
   const clean = q.trim();
   if (/^(4k|2160p)$/i.test(clean)) return '4K';
   if (/^1080p$/i.test(clean)) return '1080p';
@@ -61,13 +51,14 @@ function normalizeQuality(q: string): Quality {
 }
 
 async function fetchSubtitles(
-  mediaType: MediaType,
+  mediaType: string,
   tmdbId: string,
-  season: number | null,
-  episode: number | null
-): Promise<Subtitle[]> {
+  season: string | null,
+  episode: string | null
+): Promise<any[]> {
   try {
-    let url = `${SUBTITLES_API_URL}?type=${mediaType}&tmdb=${encodeURIComponent(tmdbId)}`;
+    const typeParam = mediaType === 'tv' || mediaType === 'series' ? 'series' : 'movie';
+    let url = `${SUBTITLES_API_URL}?type=${typeParam}&tmdb=${encodeURIComponent(tmdbId)}`;
     if (mediaType === 'tv' && season && episode) {
       url += `&season=${season}&episode=${episode}`;
     }
@@ -92,16 +83,16 @@ async function fetchSubtitles(
 async function fetchServerStreams(
   serverId: string,
   serverLabel: string,
-  mediaType: MediaType,
+  mediaType: string,
   tmdbId: string,
   title: string,
   year: string,
   imdbId: string,
   seed: string,
-  season: number | null,
-  episode: number | null,
-  subtitles: Subtitle[]
-): Promise<Stream[]> {
+  season: string | null,
+  episode: string | null,
+  subtitles: any[] = []
+): Promise<any[]> {
   try {
     const encTitle = encodeURIComponent(encodeURIComponent(title));
     const enc = '2';
@@ -125,11 +116,11 @@ async function fetchServerStreams(
     });
 
     if (!decRes.ok) return [];
-    const decData = (await decRes.json()) as DecryptedResponse;
+    const decData = (await decRes.json()) as any;
 
     if (decData.status !== 200 || !decData.result) return [];
 
-    const streams: Stream[] = [];
+    const streams: any[] = [];
     const result = decData.result;
 
     if (result.playlist) {
@@ -164,62 +155,65 @@ async function fetchServerStreams(
   }
 }
 
-export const getStreams: GetStreams = async (
-  tmdbId: string,
-  mediaType: MediaType,
-  season: number | null,
-  episode: number | null
-): Promise<Stream[]> => {
+export async function onRequestGet(context: { request: Request }): Promise<Response> {
+  const url = new URL(context.request.url);
+  const tmdbId = url.searchParams.get('tmdb') || '';
+  const typeParam = url.searchParams.get('type') || 'movie';
+  const mediaType = typeParam === 'tv' || typeParam === 'series' ? 'tv' : 'movie';
+  const season = url.searchParams.get('season');
+  const episode = url.searchParams.get('episode');
+
+  if (!tmdbId) {
+    return new Response(JSON.stringify({ error: 'Missing required query parameter "tmdb"' }), {
+      status: 400,
+      headers: CORS_HEADERS,
+    });
+  }
+
   try {
-    console.log(
-      `[VidSrc] Resolving streams for TMDB ID: ${tmdbId}, Type: ${mediaType}${mediaType === 'tv' ? ` S${season}E${episode}` : ''}`
-    );
-
-    // 1. Try Vercel Edge API first (clean JSON, 100% QuickJS and mobile native compatible)
-    try {
-      const typeParam = mediaType === 'tv' ? 'series' : 'movie';
-      let edgeUrl = `${VIDSRC_EDGE_API}?tmdb=${encodeURIComponent(tmdbId)}&type=${typeParam}`;
-      if (mediaType === 'tv' && season && episode) {
-        edgeUrl += `&season=${season}&episode=${episode}`;
-      }
-
-      const edgeRes = await fetch(edgeUrl);
-      if (edgeRes.ok) {
-        const edgeData = (await edgeRes.json()) as { success?: boolean; streams?: Stream[] };
-        if (edgeData?.streams && Array.isArray(edgeData.streams) && edgeData.streams.length > 0) {
-          console.log(`[VidSrc] Resolved ${edgeData.streams.length} stream(s) via Edge API.`);
-          return edgeData.streams;
-        }
-      }
-    } catch {
-      // Fallback to direct extraction
-    }
-
-    // 2. Fetch TMDB details
     const tmdbUrl = `https://api.themoviedb.org/3/${mediaType}/${tmdbId}?api_key=1865f43a0549ca50d341dd9ab8b29f49&append_to_response=external_ids`;
     const tmdbRes = await fetch(tmdbUrl);
-    if (!tmdbRes.ok) return [];
-    const tmdbData = (await tmdbRes.json()) as TmdbResponse;
+    if (!tmdbRes.ok) {
+      return new Response(JSON.stringify({ error: 'Failed to fetch TMDB metadata' }), {
+        status: 500,
+        headers: CORS_HEADERS,
+      });
+    }
+    const tmdbData = (await tmdbRes.json()) as any;
 
     const title = (mediaType === 'tv' ? tmdbData.name : tmdbData.title) || '';
     const dateStr = (mediaType === 'tv' ? tmdbData.first_air_date : tmdbData.release_date) || '';
     const year = dateStr.slice(0, 4) || '2023';
     const imdbId = tmdbData.imdb_id || tmdbData.external_ids?.imdb_id || '';
 
-    if (!title) return [];
+    if (!title) {
+      return new Response(JSON.stringify({ error: 'Title not found on TMDB' }), {
+        status: 404,
+        headers: CORS_HEADERS,
+      });
+    }
 
-    // 3. Fetch seed & subtitles in parallel
     const [seedRes, subtitles] = await Promise.all([
       fetch(`${API_BASE}/seed?mediaId=${tmdbId}`, { headers: VIDSRC_HEADERS }),
       fetchSubtitles(mediaType, tmdbId, season, episode),
     ]);
 
-    if (!seedRes.ok) return [];
-    const seedData = (await seedRes.json()) as SeedResponse;
+    if (!seedRes.ok) {
+      return new Response(JSON.stringify({ error: 'Failed to fetch seed' }), {
+        status: 500,
+        headers: CORS_HEADERS,
+      });
+    }
+    const seedData = (await seedRes.json()) as any;
     const seed = seedData?.seed;
-    if (!seed) return [];
 
-    // 4. Query all servers in parallel
+    if (!seed) {
+      return new Response(JSON.stringify({ error: 'Empty seed returned' }), {
+        status: 500,
+        headers: CORS_HEADERS,
+      });
+    }
+
     const serverResults = await Promise.all(
       SERVERS.map(srv =>
         fetchServerStreams(
@@ -240,18 +234,33 @@ export const getStreams: GetStreams = async (
 
     const allStreams = serverResults.flat();
 
-    // Sort streams by quality descending
     allStreams.sort((a, b) => {
       const qA = QUALITY_ORDER[a.quality || 'Unknown'] || -2;
       const qB = QUALITY_ORDER[b.quality || 'Unknown'] || -2;
       return qB - qA;
     });
 
-    console.log(`[VidSrc] Successfully resolved ${allStreams.length} stream(s).`);
-    return allStreams;
-  } catch (error: any) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(`[VidSrc] Extraction error: ${message}`);
-    return [];
+    return new Response(
+      JSON.stringify({
+        success: true,
+        streams: allStreams,
+      }),
+      {
+        status: 200,
+        headers: CORS_HEADERS,
+      }
+    );
+  } catch (err: any) {
+    return new Response(JSON.stringify({ error: err.message, streams: [] }), {
+      status: 500,
+      headers: CORS_HEADERS,
+    });
   }
-};
+}
+
+export async function onRequestOptions(): Promise<Response> {
+  return new Response(null, {
+    status: 204,
+    headers: CORS_HEADERS,
+  });
+}

@@ -1,6 +1,6 @@
 /**
  * vidsrc - Built from src/vidsrc/
- * Generated: 2026-09-09T06:11:22.678Z
+ * Generated: 2026-09-09T06:23:57.620Z
  */
 "use strict";
 var __defProp = Object.defineProperty;
@@ -64,6 +64,7 @@ var SERVERS = [
 ];
 
 // src/vidsrc/index.ts
+var VIDSRC_EDGE_API = "https://nuvio-providers.pages.dev/api/vidsrc";
 var QUALITY_ORDER = {
   "4K": 5,
   "2160p": 5,
@@ -96,10 +97,7 @@ function fetchSubtitles(mediaType, tmdbId, season, episode) {
       if (mediaType === "tv" && season && episode) {
         url += `&season=${season}&episode=${episode}`;
       }
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 3500);
-      const res = yield fetch(url, { signal: controller.signal });
-      clearTimeout(timeout);
+      const res = yield fetch(url);
       if (!res.ok)
         return [];
       const json = yield res.json();
@@ -123,24 +121,16 @@ function fetchServerStreams(serverId, serverLabel, mediaType, tmdbId, title, yea
       if (mediaType === "tv" && season && episode) {
         targetUrl = `${API_BASE}/${serverId}/sources-with-title?title=${encTitle}&mediaType=tv&year=${year}&episodeId=${episode}&seasonId=${season}&tmdbId=${tmdbId}&imdbId=${imdbId}&enc=${enc}&seed=${seed}`;
       }
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 4e3);
-      const encRes = yield fetch(targetUrl, {
-        headers: VIDSRC_HEADERS,
-        signal: controller.signal
-      });
+      const encRes = yield fetch(targetUrl, { headers: VIDSRC_HEADERS });
       const encText = yield encRes.text();
       if (!encText || encText.includes("error") || encText.includes("bad")) {
-        clearTimeout(timeout);
         return [];
       }
       const decRes = yield fetch(DEC_API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: encText, id: tmdbId, seed }),
-        signal: controller.signal
+        body: JSON.stringify({ text: encText, id: tmdbId, seed })
       });
-      clearTimeout(timeout);
       if (!decRes.ok)
         return [];
       const decData = yield decRes.json();
@@ -185,6 +175,22 @@ var getStreams = (tmdbId, mediaType, season, episode) => __async(void 0, null, f
     console.log(
       `[VidSrc] Resolving streams for TMDB ID: ${tmdbId}, Type: ${mediaType}${mediaType === "tv" ? ` S${season}E${episode}` : ""}`
     );
+    try {
+      const typeParam = mediaType === "tv" ? "series" : "movie";
+      let edgeUrl = `${VIDSRC_EDGE_API}?tmdb=${encodeURIComponent(tmdbId)}&type=${typeParam}`;
+      if (mediaType === "tv" && season && episode) {
+        edgeUrl += `&season=${season}&episode=${episode}`;
+      }
+      const edgeRes = yield fetch(edgeUrl);
+      if (edgeRes.ok) {
+        const edgeData = yield edgeRes.json();
+        if ((edgeData == null ? void 0 : edgeData.streams) && Array.isArray(edgeData.streams) && edgeData.streams.length > 0) {
+          console.log(`[VidSrc] Resolved ${edgeData.streams.length} stream(s) via Edge API.`);
+          return edgeData.streams;
+        }
+      }
+    } catch (e) {
+    }
     const tmdbUrl = `https://api.themoviedb.org/3/${mediaType}/${tmdbId}?api_key=1865f43a0549ca50d341dd9ab8b29f49&append_to_response=external_ids`;
     const tmdbRes = yield fetch(tmdbUrl);
     if (!tmdbRes.ok)

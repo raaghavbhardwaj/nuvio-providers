@@ -1,42 +1,21 @@
-/**
- * @fileoverview VidSrc provider for Nuvio.
- * Resolves high-speed adaptive HLS streams (up to 4K UHD) with subtitles.
- */
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-import type { GetStreams, MediaType, Quality, Stream, Subtitle } from '../../types/nuvio';
-import { API_BASE, DEC_API_URL, SERVERS, SUBTITLES_API_URL, VIDSRC_HEADERS } from './constants';
+const VIDSRC_HEADERS: Record<string, string> = {
+  Accept: '*/*',
+  Origin: 'https://player.videasy.to',
+  Referer: 'https://player.videasy.to/',
+  'User-Agent':
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
+};
 
-const VIDSRC_EDGE_API = 'https://nuvio-providers.pages.dev/api/vidsrc';
+const API_BASE = 'https://api.speedracelight.com';
+const DEC_API_URL = 'https://enc-dec.app/api/dec-videasy';
+const SUBTITLES_API_URL = 'https://subtitles.shegu.st/subtitles';
 
-interface TmdbResponse {
-  title?: string;
-  name?: string;
-  release_date?: string;
-  first_air_date?: string;
-  imdb_id?: string;
-  external_ids?: {
-    imdb_id?: string;
-  };
-}
-
-interface SeedResponse {
-  seed: string;
-}
-
-interface DecryptedSource {
-  quality: string;
-  url: string;
-}
-
-interface DecryptedResult {
-  sources?: DecryptedSource[];
-  playlist?: string;
-}
-
-interface DecryptedResponse {
-  status: number;
-  result?: DecryptedResult;
-}
+const SERVERS = [
+  { id: 'cdn', name: 'VidSrc [Yoru]' },
+  { id: 'm4uhd', name: 'VidSrc [Breach]' },
+] as const;
 
 const QUALITY_ORDER: Record<string, number> = {
   '4K': 5,
@@ -50,7 +29,7 @@ const QUALITY_ORDER: Record<string, number> = {
   Unknown: -2,
 };
 
-function normalizeQuality(q: string): Quality {
+function normalizeQuality(q: string): string {
   const clean = q.trim();
   if (/^(4k|2160p)$/i.test(clean)) return '4K';
   if (/^1080p$/i.test(clean)) return '1080p';
@@ -61,18 +40,19 @@ function normalizeQuality(q: string): Quality {
 }
 
 async function fetchSubtitles(
-  mediaType: MediaType,
+  mediaType: string,
   tmdbId: string,
-  season: number | null,
-  episode: number | null
-): Promise<Subtitle[]> {
+  season?: string,
+  episode?: string
+): Promise<any[]> {
   try {
-    let url = `${SUBTITLES_API_URL}?type=${mediaType}&tmdb=${encodeURIComponent(tmdbId)}`;
+    const typeParam = mediaType === 'tv' ? 'series' : 'movie';
+    let url = `${SUBTITLES_API_URL}?type=${typeParam}&tmdb=${encodeURIComponent(tmdbId)}`;
     if (mediaType === 'tv' && season && episode) {
       url += `&season=${season}&episode=${episode}`;
     }
 
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
     if (!res.ok) return [];
     const json = (await res.json()) as any;
     const list = Array.isArray(json) ? json : Array.isArray(json?.subtitles) ? json.subtitles : [];
@@ -92,16 +72,16 @@ async function fetchSubtitles(
 async function fetchServerStreams(
   serverId: string,
   serverLabel: string,
-  mediaType: MediaType,
+  mediaType: string,
   tmdbId: string,
   title: string,
   year: string,
   imdbId: string,
   seed: string,
-  season: number | null,
-  episode: number | null,
-  subtitles: Subtitle[]
-): Promise<Stream[]> {
+  season?: string,
+  episode?: string,
+  subtitles: any[] = []
+): Promise<any[]> {
   try {
     const encTitle = encodeURIComponent(encodeURIComponent(title));
     const enc = '2';
@@ -111,7 +91,10 @@ async function fetchServerStreams(
       targetUrl = `${API_BASE}/${serverId}/sources-with-title?title=${encTitle}&mediaType=tv&year=${year}&episodeId=${episode}&seasonId=${season}&tmdbId=${tmdbId}&imdbId=${imdbId}&enc=${enc}&seed=${seed}`;
     }
 
-    const encRes = await fetch(targetUrl, { headers: VIDSRC_HEADERS });
+    const encRes = await fetch(targetUrl, {
+      headers: VIDSRC_HEADERS,
+      signal: AbortSignal.timeout(5000),
+    });
     const encText = await encRes.text();
 
     if (!encText || encText.includes('error') || encText.includes('bad')) {
@@ -122,14 +105,15 @@ async function fetchServerStreams(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: encText, id: tmdbId, seed }),
+      signal: AbortSignal.timeout(5000),
     });
 
     if (!decRes.ok) return [];
-    const decData = (await decRes.json()) as DecryptedResponse;
+    const decData = (await decRes.json()) as any;
 
     if (decData.status !== 200 || !decData.result) return [];
 
-    const streams: Stream[] = [];
+    const streams: any[] = [];
     const result = decData.result;
 
     if (result.playlist) {
@@ -164,75 +148,73 @@ async function fetchServerStreams(
   }
 }
 
-export const getStreams: GetStreams = async (
-  tmdbId: string,
-  mediaType: MediaType,
-  season: number | null,
-  episode: number | null
-): Promise<Stream[]> => {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  const { tmdb, type = 'movie', season, episode } = req.query;
+
+  if (!tmdb || typeof tmdb !== 'string') {
+    return res.status(400).json({ error: 'Missing tmdb parameter' });
+  }
+
+  const mediaType = type === 'tv' || type === 'series' ? 'tv' : 'movie';
+  const seasonStr = typeof season === 'string' ? season : undefined;
+  const episodeStr = typeof episode === 'string' ? episode : undefined;
+
   try {
-    console.log(
-      `[VidSrc] Resolving streams for TMDB ID: ${tmdbId}, Type: ${mediaType}${mediaType === 'tv' ? ` S${season}E${episode}` : ''}`
-    );
-
-    // 1. Try Vercel Edge API first (clean JSON, 100% QuickJS and mobile native compatible)
-    try {
-      const typeParam = mediaType === 'tv' ? 'series' : 'movie';
-      let edgeUrl = `${VIDSRC_EDGE_API}?tmdb=${encodeURIComponent(tmdbId)}&type=${typeParam}`;
-      if (mediaType === 'tv' && season && episode) {
-        edgeUrl += `&season=${season}&episode=${episode}`;
-      }
-
-      const edgeRes = await fetch(edgeUrl);
-      if (edgeRes.ok) {
-        const edgeData = (await edgeRes.json()) as { success?: boolean; streams?: Stream[] };
-        if (edgeData?.streams && Array.isArray(edgeData.streams) && edgeData.streams.length > 0) {
-          console.log(`[VidSrc] Resolved ${edgeData.streams.length} stream(s) via Edge API.`);
-          return edgeData.streams;
-        }
-      }
-    } catch {
-      // Fallback to direct extraction
+    const tmdbUrl = `https://api.themoviedb.org/3/${mediaType}/${tmdb}?api_key=1865f43a0549ca50d341dd9ab8b29f49&append_to_response=external_ids`;
+    const tmdbRes = await fetch(tmdbUrl, { signal: AbortSignal.timeout(4000) });
+    if (!tmdbRes.ok) {
+      return res.status(500).json({ error: 'Failed to fetch TMDB details' });
     }
-
-    // 2. Fetch TMDB details
-    const tmdbUrl = `https://api.themoviedb.org/3/${mediaType}/${tmdbId}?api_key=1865f43a0549ca50d341dd9ab8b29f49&append_to_response=external_ids`;
-    const tmdbRes = await fetch(tmdbUrl);
-    if (!tmdbRes.ok) return [];
-    const tmdbData = (await tmdbRes.json()) as TmdbResponse;
+    const tmdbData = (await tmdbRes.json()) as any;
 
     const title = (mediaType === 'tv' ? tmdbData.name : tmdbData.title) || '';
     const dateStr = (mediaType === 'tv' ? tmdbData.first_air_date : tmdbData.release_date) || '';
     const year = dateStr.slice(0, 4) || '2023';
     const imdbId = tmdbData.imdb_id || tmdbData.external_ids?.imdb_id || '';
 
-    if (!title) return [];
+    if (!title) {
+      return res.status(404).json({ error: 'Title not found on TMDB' });
+    }
 
-    // 3. Fetch seed & subtitles in parallel
     const [seedRes, subtitles] = await Promise.all([
-      fetch(`${API_BASE}/seed?mediaId=${tmdbId}`, { headers: VIDSRC_HEADERS }),
-      fetchSubtitles(mediaType, tmdbId, season, episode),
+      fetch(`${API_BASE}/seed?mediaId=${tmdb}`, {
+        headers: VIDSRC_HEADERS,
+        signal: AbortSignal.timeout(4000),
+      }),
+      fetchSubtitles(mediaType, tmdb, seasonStr, episodeStr),
     ]);
 
-    if (!seedRes.ok) return [];
-    const seedData = (await seedRes.json()) as SeedResponse;
+    if (!seedRes.ok) {
+      return res.status(500).json({ error: 'Failed to fetch seed' });
+    }
+    const seedData = (await seedRes.json()) as any;
     const seed = seedData?.seed;
-    if (!seed) return [];
 
-    // 4. Query all servers in parallel
+    if (!seed) {
+      return res.status(500).json({ error: 'Empty seed' });
+    }
+
     const serverResults = await Promise.all(
       SERVERS.map(srv =>
         fetchServerStreams(
           srv.id,
           srv.name,
           mediaType,
-          tmdbId,
+          tmdb,
           title,
           year,
           imdbId,
           seed,
-          season,
-          episode,
+          seasonStr,
+          episodeStr,
           subtitles
         )
       )
@@ -240,18 +222,17 @@ export const getStreams: GetStreams = async (
 
     const allStreams = serverResults.flat();
 
-    // Sort streams by quality descending
     allStreams.sort((a, b) => {
       const qA = QUALITY_ORDER[a.quality || 'Unknown'] || -2;
       const qB = QUALITY_ORDER[b.quality || 'Unknown'] || -2;
       return qB - qA;
     });
 
-    console.log(`[VidSrc] Successfully resolved ${allStreams.length} stream(s).`);
-    return allStreams;
-  } catch (error: any) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(`[VidSrc] Extraction error: ${message}`);
-    return [];
+    return res.status(200).json({
+      success: true,
+      streams: allStreams,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
   }
-};
+}
