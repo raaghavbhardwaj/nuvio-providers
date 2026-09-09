@@ -203,10 +203,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       const upstreamContentType = (upstreamRes.headers.get('content-type') || '').toLowerCase();
+      const extParam = (req.query.ext as string) || '';
+      const isSegmentExt = extParam === '.m4s' || extParam === '.ts' || extParam === '.mp4';
       const isM3U8 =
-        targetUrl.includes('.m3u8') ||
-        upstreamContentType.includes('mpegurl') ||
-        upstreamContentType.includes('application/x-mpegurl');
+        !isSegmentExt &&
+        (targetUrl.includes('.m3u8') ||
+          targetUrl.includes('playlist') ||
+          upstreamContentType.includes('mpegurl') ||
+          upstreamContentType.includes('application/x-mpegurl'));
 
       if (isM3U8) {
         const text = await upstreamRes.text();
@@ -219,76 +223,68 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const proto = Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto || 'https';
         const proxyBase = `${proto}://${host}/api/cinejoy?hls=1&url=`;
 
-        
         const lines = text.split('\n');
-        const header: string[] = [];
-        const streams: any[] = [];
-        let currentStream: any = null;
-        let isMaster = false;
+        let isSegment = false;
+        const rewrittenLines: string[] = [];
 
-        for (let line of lines) {
-          line = line.trim();
-          if (!line) continue;
-          if (line.startsWith('#EXT-X-STREAM-INF:')) {
-            isMaster = true;
-            currentStream = { tag: line, url: null, height: 0 };
-            const resMatch = line.match(/RESOLUTION=\d+x(\d+)/);
-            if (resMatch) currentStream.height = parseInt(resMatch[1]);
-          } else if (currentStream && !line.startsWith('#')) {
-            currentStream.url = line;
-            streams.push(currentStream);
-            currentStream = null;
-          } else if (!currentStream) {
-            header.push(line);
+        for (let rawLine of lines) {
+          const trimmed = rawLine.trim();
+          if (!trimmed) {
+            rewrittenLines.push(rawLine);
+            continue;
           }
-        }
 
-        let processText = text;
-        if (isMaster && streams.length > 0) {
-          streams.sort((a, b) => b.height - a.height);
-          // Keep only the highest quality stream to force HD/4K playback
-          processText = header.join('\n') + '\n' + streams[0].tag + '\n' + streams[0].url + '\n';
-        }
-
-        const rewritten = processText
-          .split('\n')
-          .map((line: string) => {
-            const trimmed = line.trim();
-            if (!trimmed) return line;
-
-            // Handle #EXT-X-MAP:URI="..."
-            if (trimmed.startsWith('#EXT-X-MAP:')) {
-              return line.replace(/URI="([^"]+)"/, (match: string, uri: string) => {
+          // Handle #EXT-X-MAP:URI="..."
+          if (trimmed.startsWith('#EXT-X-MAP:')) {
+            rewrittenLines.push(
+              trimmed.replace(/URI="([^"]+)"/, (_match: string, uri: string) => {
                 const absUri = new URL(uri, targetUrl).toString();
                 return `URI="${proxyBase}${encodeURIComponent(absUri)}&ext=.mp4"`;
-              });
-            }
+              })
+            );
+            continue;
+          }
 
-            // Handle #EXT-X-MEDIA:...URI="..."
-            if (trimmed.startsWith('#EXT-X-MEDIA:')) {
-              return line.replace(/URI="([^"]+)"/, (match: string, uri: string) => {
+          // Handle #EXT-X-MEDIA:...URI="..."
+          if (trimmed.startsWith('#EXT-X-MEDIA:')) {
+            rewrittenLines.push(
+              trimmed.replace(/URI="([^"]+)"/, (_match: string, uri: string) => {
                 const absUri = new URL(uri, targetUrl).toString();
                 return `URI="${proxyBase}${encodeURIComponent(absUri)}"`;
-              });
-            }
+              })
+            );
+            continue;
+          }
 
-            // Keep comments/tags intact
-            if (trimmed.startsWith('#')) return line;
+          if (trimmed.startsWith('#EXTINF:')) {
+            isSegment = true;
+            rewrittenLines.push(trimmed);
+            continue;
+          }
 
-            // Media playlist or segment URL
-            const absUrl = new URL(trimmed, targetUrl).toString();
-            if (absUrl.includes('.m3u8')) {
-              return `${proxyBase}${encodeURIComponent(absUrl)}`;
-            }
+          // Keep all other tags intact (including #EXT-X-STREAM-INF, do not strip variants!)
+          if (trimmed.startsWith('#')) {
+            rewrittenLines.push(trimmed);
+            continue;
+          }
+
+          // Target URI: either a sub-playlist or a media segment
+          const absUrl = new URL(trimmed, targetUrl).toString();
+          if (isSegment) {
+            isSegment = false;
             const isFmp4 =
               absUrl.includes('movieboxnoob.cc/video') ||
               absUrl.includes('movieboxnoob.cc/hls') ||
               absUrl.includes('bright67.online');
             const segExt = isFmp4 ? '.m4s' : '.ts';
-            return `${proxyBase}${encodeURIComponent(absUrl)}&ext=${segExt}`;
-          })
-          .join('\n');
+            rewrittenLines.push(`${proxyBase}${encodeURIComponent(absUrl)}&ext=${segExt}`);
+          } else {
+            // Variant sub-playlist (e.g. video_1080p.m3u8, 1080p/playlist.jpg)
+            rewrittenLines.push(`${proxyBase}${encodeURIComponent(absUrl)}`);
+          }
+        }
 
+        const rewritten = rewrittenLines.join('\n');
         res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Cache-Control', 'public, max-age=3600');
