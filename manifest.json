@@ -1,6 +1,6 @@
 {
   "name": "Raaghav's Repo",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "scrapers": [
     {
       "id": "cinejoy",
@@ -19,7 +19,7 @@
       "id": "vegamovies",
       "name": "Vegamovies",
       "description": "High quality 1080p/4K direct links with V-Cloud and G-Direct extraction. No Cloudflare blocking.",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "author": "raaghav",
       "supportedTypes": ["movie", "tv"],
       "filename": "providers/vegamovies.js",

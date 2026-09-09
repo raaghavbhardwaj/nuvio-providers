@@ -1,6 +1,6 @@
 /**
  * vegamovies - Built from src/vegamovies/
- * Generated: 2026-09-09T05:14:46.207Z
+ * Generated: 2026-09-09T05:23:37.732Z
  */
 "use strict";
 var __create = Object.create;
@@ -236,4 +236,3 @@ function getStreams(tmdbId, mediaType = "movie", season = null, episode = null) 
     }
   });
 }
-module.exports = { getStreams };

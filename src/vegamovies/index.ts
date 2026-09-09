@@ -203,4 +203,4 @@ export async function getStreams(tmdbId: string, mediaType: string = 'movie', se
     return [];
   }
 }
-module.exports = { getStreams };
+
