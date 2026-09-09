@@ -1,6 +1,6 @@
 /**
  * vidsrc - Built from src/vidsrc/
- * Generated: 2026-09-09T06:33:57.534Z
+ * Generated: 2026-09-09T06:38:02.993Z
  */
 "use strict";
 var __defProp = Object.defineProperty;
@@ -176,10 +176,13 @@ var getStreams = (tmdbId, mediaType, season, episode) => __async(void 0, null, f
       `[VidSrc] Resolving streams for TMDB ID: ${tmdbId}, Type: ${mediaType}${mediaType === "tv" ? ` S${season}E${episode}` : ""}`
     );
     try {
-      const typeParam = mediaType === "tv" ? "series" : "movie";
+      const isTv = mediaType === "tv" || mediaType === "series" || typeof season === "number" && season > 0 || typeof season === "string" && season !== "";
+      const typeParam = isTv ? "series" : "movie";
       let edgeUrl = `${VIDSRC_EDGE_API}?tmdb=${encodeURIComponent(tmdbId)}&type=${typeParam}`;
-      if (mediaType === "tv" && season && episode) {
-        edgeUrl += `&season=${season}&episode=${episode}`;
+      if (isTv) {
+        const s = season != null ? String(season) : "1";
+        const e = episode != null ? String(episode) : "1";
+        edgeUrl += `&season=${s}&episode=${e}`;
       }
       const edgeRes = yield fetch(edgeUrl);
       if (edgeRes.ok) {

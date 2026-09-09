@@ -31,11 +31,13 @@ export const getStreams: GetStreams = async (
 
     // 1. Try Cloudflare Edge API first (clean JSON, 100% QuickJS compatible)
     try {
-      const isTv = mediaType === 'tv' || mediaType === 'series' || season !== null;
+      const isTv = mediaType === 'tv' || mediaType === 'series' || (typeof season === 'number' && season > 0) || (typeof season === 'string' && season !== '');
       const typeParam = isTv ? 'series' : 'movie';
       let edgeUrl = `${CINEJOY_EDGE_API}?tmdb=${encodeURIComponent(tmdbId)}&type=${typeParam}`;
-      if (isTv && season && episode) {
-        edgeUrl += `&season=${season}&episode=${episode}`;
+      if (isTv) {
+        const s = season != null ? String(season) : '1';
+        const e = episode != null ? String(episode) : '1';
+        edgeUrl += `&season=${s}&episode=${e}`;
       }
 
       const edgeRes = await fetch(edgeUrl);

@@ -177,10 +177,13 @@ export const getStreams: GetStreams = async (
 
     // 1. Try Vercel Edge API first (clean JSON, 100% QuickJS and mobile native compatible)
     try {
-      const typeParam = mediaType === 'tv' ? 'series' : 'movie';
+      const isTv = mediaType === 'tv' || mediaType === 'series' || (typeof season === 'number' && season > 0) || (typeof season === 'string' && season !== '');
+      const typeParam = isTv ? 'series' : 'movie';
       let edgeUrl = `${VIDSRC_EDGE_API}?tmdb=${encodeURIComponent(tmdbId)}&type=${typeParam}`;
-      if (mediaType === 'tv' && season && episode) {
-        edgeUrl += `&season=${season}&episode=${episode}`;
+      if (isTv) {
+        const s = season != null ? String(season) : '1';
+        const e = episode != null ? String(episode) : '1';
+        edgeUrl += `&season=${s}&episode=${e}`;
       }
 
       const edgeRes = await fetch(edgeUrl);
