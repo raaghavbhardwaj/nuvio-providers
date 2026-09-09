@@ -58,7 +58,48 @@ nuvio-providers/
 
 ---
 
-## 4. Development & Build Workflows
+## 4. Google-Grade Engineering Standards
+
+All TypeScript and JavaScript code written in this repository must strictly adhere to the **Google TypeScript Style Guide**:
+
+1. **Strict Type Safety (Zero `any` Tolerance)**:
+   * Do not use implicit or explicit `any`. Model scraper payloads, HTTP responses, and subtitle structures using strict interfaces adhering to [`types/nuvio.d.ts`](types/nuvio.d.ts).
+   * All exported functions must include explicit return types and full TSDoc / JSDoc annotations.
+2. **Exhaustive Input & Runtime Validation**:
+   * Validate TMDB IDs, season numbers, and episode numbers before initiating network requests.
+   * Parse untrusted upstream HTML or JSON defensively with fallback defaults.
+3. **Hermetic Modularity**:
+   * Keep HTTP header generation, obfuscation unpackers, and scraper business logic isolated into dedicated modular files (`src/common/`).
+4. **Resilient Error Logging**:
+   * Catch blocks must log structured diagnostic logs (`[ScraperName] Error: ...`) and return empty stream arrays `[]` instead of throwing unhandled exceptions that crash the host mobile app.
+
+---
+
+## 5. The 5 Core Clean Code Rules
+
+### RULE 1: Single Responsibility Principle (SRP)
+* Each provider module, extractor, or decryption helper must do exactly one thing.
+* Keep functions concise (< 30 lines). Break monolithic scraping functions into separate phases: input validation -> upstream fetch -> HTML/JSON extraction -> stream normalization.
+
+### RULE 2: Intention-Revealing, Self-Documenting Naming
+* Function and variable names must immediately communicate their behavior and data type without cryptic abbreviations.
+* Use descriptive identifiers (`fetchDecryptedSources`, `normalizeStreamQuality`, `isTvShow`) rather than ambiguous names (`s`, `res2`, `tmp`).
+
+### RULE 3: Fail-Fast & Early Returns (The Bouncer Pattern)
+* Inspect inputs and preconditions at the beginning of functions.
+* If parameters are missing or invalid, exit immediately. Avoid deeply nested `if`/`else` trees.
+
+### RULE 4: DRY (Don't Repeat Yourself) & Constant Extraction
+* Reuse common utilities (`src/common/headers.ts`, `src/common/unpacker.ts`) rather than duplicating code across providers.
+* Centralize all API endpoints, regex patterns, quality hierarchies, and default headers into dedicated `constants.ts` files.
+
+### RULE 5: Immutability & Pure Functions
+* Always use `const`. Never use `var` or reassign variables unless strictly necessary.
+* Avoid mutating arrays or objects in-place. Use functional methods (`.map()`, `.filter()`, `.reduce()`, spread operator) to transform data cleanly.
+
+---
+
+## 6. Development & Build Workflows
 
 ### 1. Build Providers
 To bundle TypeScript sources from `src/<provider>/` into `providers/<provider>.js`:
