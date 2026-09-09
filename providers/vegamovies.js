@@ -1,6 +1,6 @@
 /**
  * vegamovies - Built from src/vegamovies/
- * Generated: 2026-09-08T07:44:17.471Z
+ * Generated: 2026-09-09T05:14:46.207Z
  */
 "use strict";
 var __create = Object.create;
@@ -75,7 +75,7 @@ function getStreams(tmdbId, mediaType = "movie", season = null, episode = null) 
     try {
       const tmdbRes = yield fetch(`https://api.themoviedb.org/3/${mediaType}/${tmdbId}?api_key=1865f43a0549ca50d341dd9ab8b29f49`);
       const tmdbData = yield tmdbRes.json();
-      const title = mediaType === "tv" ? tmdbData.name : tmdbData.title;
+      const title = (mediaType === "tv" ? tmdbData.name : tmdbData.title) || "";
       const searchRes = yield fetch(`${SEARCH_URL}?q=${encodeURIComponent(title)}&page=1`, { headers: HEADERS });
       const searchData = yield searchRes.json();
       if (!searchData.hits || searchData.hits.length === 0)
@@ -161,7 +161,7 @@ function getStreams(tmdbId, mediaType = "movie", season = null, episode = null) 
                 vcloudUrl = epLink;
               } else {
                 if (nex$('a[href*="vcloud.fit"]').length === 1) {
-                  vcloudUrl = nex$('a[href*="vcloud.fit"]').attr("href") || vcloudUrl;
+                  vcloudUrl = nex$('a[href*="fastdl.zip"]').attr("href") || nex$('a[href*="vcloud.fit"]').attr("href") || vcloudUrl;
                 } else {
                   continue;
                 }
@@ -170,7 +170,39 @@ function getStreams(tmdbId, mediaType = "movie", season = null, episode = null) 
               vcloudUrl = nex$('a[href*="vcloud.fit"]').attr("href") || vcloudUrl;
             }
           }
-          if (vcloudUrl.includes("vcloud.fit")) {
+          if (vcloudUrl.includes("fastdl.zip")) {
+            const fRes = yield fetch(vcloudUrl, { headers: HEADERS });
+            const fHtml = yield fRes.text();
+            const reMatch = fHtml.match(/var reurl = "([^"]+)"/);
+            if (reMatch) {
+              const dlUrl = reMatch[1];
+              const dRes = yield fetch(dlUrl, { headers: HEADERS });
+              const dHtml = yield dRes.text();
+              const d$ = import_cheerio_without_node_native.default.load(dHtml);
+              const finalUrl = d$("#vd").attr("href");
+              if (finalUrl) {
+                finalStreams.push({
+                  server: "VegaMovies Direct",
+                  title: (mediaType === "tv" ? `Ep ${episode || stream.epIndex} ` : "") + (stream.size ? `${stream.quality} - ${stream.size}` : `VegaMovies ${stream.quality}`),
+                  quality: stream.quality,
+                  size: stream.size,
+                  url: finalUrl
+                });
+              }
+            } else {
+              const f$ = import_cheerio_without_node_native.default.load(fHtml);
+              const finalUrl = f$("#vd").attr("href");
+              if (finalUrl) {
+                finalStreams.push({
+                  server: "VegaMovies Direct",
+                  title: (mediaType === "tv" ? `Ep ${episode || stream.epIndex} ` : "") + (stream.size ? `${stream.quality} - ${stream.size}` : `VegaMovies ${stream.quality}`),
+                  quality: stream.quality,
+                  size: stream.size,
+                  url: finalUrl
+                });
+              }
+            }
+          } else if (vcloudUrl.includes("vcloud.fit")) {
             const vRes = yield fetch(vcloudUrl, { headers: HEADERS });
             const vHtml = yield vRes.text();
             const atobMatch = vHtml.match(/var url = atob\(atob\('([^']+)'\)\)/);

@@ -18,8 +18,8 @@
     {
       "id": "vegamovies",
       "name": "Vegamovies",
-      "description": "High quality 1080p/4K direct links with V-Cloud extraction. No Cloudflare blocking.",
-      "version": "1.0.0",
+      "description": "High quality 1080p/4K direct links with V-Cloud and G-Direct extraction. No Cloudflare blocking.",
+      "version": "1.0.5",
       "author": "raaghav",
       "supportedTypes": ["movie", "tv"],
       "filename": "providers/vegamovies.js",

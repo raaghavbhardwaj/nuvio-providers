@@ -8,7 +8,7 @@ export async function getStreams(tmdbId: string, mediaType: string = 'movie', se
     // 1. Get TMDB Details (mock for testing, we just need title)
     const tmdbRes = await fetch(`https://api.themoviedb.org/3/${mediaType}/${tmdbId}?api_key=1865f43a0549ca50d341dd9ab8b29f49`);
     const tmdbData = await tmdbRes.json();
-    const title = mediaType === 'tv' ? tmdbData.name : tmdbData.title;
+    const title = (mediaType === 'tv' ? tmdbData.name : tmdbData.title) || '';
     
     // 2. Search Vegamovies
     const searchRes = await fetch(`${SEARCH_URL}?q=${encodeURIComponent(title)}&page=1`, { headers: HEADERS });
@@ -66,7 +66,7 @@ export async function getStreams(tmdbId: string, mediaType: string = 'movie', se
         
         
         let specificLink = undefined;
-        $(pEl).find('a').each((_, aEl) => {
+        $(pEl).find('a').each((_: any, aEl: any) => {
             const aText = $(aEl).text().toLowerCase();
             const aHref = $(aEl).attr('href') || '';
             if (aText.includes('v-cloud') || aText.includes('vcloud') || aText.includes('fastserver') || aHref.includes('vcloud.fit') || aHref.includes('fastdl.zip')) {
@@ -100,8 +100,8 @@ export async function getStreams(tmdbId: string, mediaType: string = 'movie', se
             
             if (mediaType === 'tv' && episode) {
                 // Find the episode header
-                let epLink = null;
-                nex$('h4, h3, h5, div').each((_, epEl) => {
+                let epLink: string | null = null;
+                nex$('h4, h3, h5, div').each((_: any, epEl: any) => {
                     const epText = nex$(epEl).text().toLowerCase();
                     const epRegex = new RegExp('episode[^0-9]*0?' + episode + '\\b', 'i');
                     if (epRegex.test(epText)) {
@@ -116,7 +116,7 @@ export async function getStreams(tmdbId: string, mediaType: string = 'movie', se
                 } else {
                     // Try to see if it's purely a single episode link by checking if there's only 1 vcloud link
                     if (nex$('a[href*="vcloud.fit"]').length === 1) {
-                         vcloudUrl = nex$('a[href*="vcloud.fit"]').attr('href') || vcloudUrl;
+                         vcloudUrl = nex$('a[href*="fastdl.zip"]').attr('href') || nex$('a[href*="vcloud.fit"]').attr('href') || vcloudUrl;
                     } else {
                          continue; // Skip this quality, doesn't have the requested episode
                     }
@@ -126,7 +126,42 @@ export async function getStreams(tmdbId: string, mediaType: string = 'movie', se
             }
         }
 
-        if (vcloudUrl.includes('vcloud.fit')) {
+        
+        if (vcloudUrl.includes('fastdl.zip')) {
+            const fRes = await fetch(vcloudUrl, { headers: HEADERS });
+            const fHtml = await fRes.text();
+            
+            const reMatch = fHtml.match(/var reurl = "([^"]+)"/);
+            if (reMatch) {
+                 const dlUrl = reMatch[1];
+                 const dRes = await fetch(dlUrl, { headers: HEADERS });
+                 const dHtml = await dRes.text();
+                 const d$ = cheerio.load(dHtml);
+                 const finalUrl = d$('#vd').attr('href');
+                 if (finalUrl) {
+                     finalStreams.push({
+                        server: 'VegaMovies Direct',
+                        title: (mediaType === 'tv' ? `Ep ${episode || stream.epIndex} ` : '') + (stream.size ? `${stream.quality} - ${stream.size}` : `VegaMovies ${stream.quality}`),
+                        quality: stream.quality,
+                        size: stream.size,
+                        url: finalUrl
+                     });
+                 }
+            } else {
+                 const f$ = cheerio.load(fHtml);
+                 const finalUrl = f$('#vd').attr('href');
+                 if (finalUrl) {
+                     finalStreams.push({
+                        server: 'VegaMovies Direct',
+                        title: (mediaType === 'tv' ? `Ep ${episode || stream.epIndex} ` : '') + (stream.size ? `${stream.quality} - ${stream.size}` : `VegaMovies ${stream.quality}`),
+                        quality: stream.quality,
+                        size: stream.size,
+                        url: finalUrl
+                     });
+                 }
+            }
+        } else if (vcloudUrl.includes('vcloud.fit')) {
+
 
             const vRes = await fetch(vcloudUrl, { headers: HEADERS });
             const vHtml = await vRes.text();
