@@ -1,6 +1,13 @@
 import cheerio from 'cheerio-without-node-native';
 import { MAIN_URL, SEARCH_URL, HEADERS } from './constants';
 
+async function fetchBypass(url: string, options: any = {}) {
+    const targetUrl = encodeURIComponent(url);
+    const proxyUrl = `http://api.scraperapi.com?api_key=ee912511f247b04434400d2eb3548e20&url=${targetUrl}&render=true`;
+    return fetch(proxyUrl, options);
+}
+
+
 export async function getStreams(tmdbId: string, mediaType: string = 'movie', season: any = null, episode: any = null) {
   console.log(`[Vegamovies] Querying streams for TMDB: ${tmdbId}, Type: ${mediaType}`);
 
@@ -11,7 +18,7 @@ export async function getStreams(tmdbId: string, mediaType: string = 'movie', se
     const title = (mediaType === 'tv' ? tmdbData.name : tmdbData.title) || '';
     
     // 2. Search Vegamovies
-    const searchRes = await fetch(`${SEARCH_URL}?q=${encodeURIComponent(title)}&page=1`, { headers: HEADERS });
+    const searchRes = await fetchBypass(`${SEARCH_URL}?q=${encodeURIComponent(title)}&page=1`, { headers: HEADERS });
     const searchData = await searchRes.json();
 
     if (!searchData.hits || searchData.hits.length === 0) return [];
@@ -39,7 +46,7 @@ export async function getStreams(tmdbId: string, mediaType: string = 'movie', se
     const postUrl = MAIN_URL + hit.permalink;
 
     console.log("Fetching URL:", postUrl); // 3. Fetch Post HTML
-    const postRes = await fetch(postUrl, { headers: HEADERS });
+    const postRes = await fetchBypass(postUrl, { headers: HEADERS });
     const postHtml = await postRes.text();
     const $ = cheerio.load(postHtml);
 
@@ -94,7 +101,7 @@ export async function getStreams(tmdbId: string, mediaType: string = 'movie', se
         
         let vcloudUrl = stream.url;
         if (vcloudUrl.includes('nexdrive.fit')) {
-            const nexRes = await fetch(vcloudUrl, { headers: HEADERS });
+            const nexRes = await fetchBypass(vcloudUrl, { headers: HEADERS });
             const nexHtml = await nexRes.text();
             const nex$ = cheerio.load(nexHtml);
             
@@ -128,13 +135,13 @@ export async function getStreams(tmdbId: string, mediaType: string = 'movie', se
 
         
         if (vcloudUrl.includes('fastdl.zip')) {
-            const fRes = await fetch(vcloudUrl, { headers: HEADERS });
+            const fRes = await fetchBypass(vcloudUrl, { headers: HEADERS });
             const fHtml = await fRes.text();
             
             const reMatch = fHtml.match(/var reurl = "([^"]+)"/);
             if (reMatch) {
                  const dlUrl = reMatch[1];
-                 const dRes = await fetch(dlUrl, { headers: HEADERS });
+                 const dRes = await fetchBypass(dlUrl, { headers: HEADERS });
                  const dHtml = await dRes.text();
                  const d$ = cheerio.load(dHtml);
                  const finalUrl = d$('#vd').attr('href');
@@ -163,7 +170,7 @@ export async function getStreams(tmdbId: string, mediaType: string = 'movie', se
         } else if (vcloudUrl.includes('vcloud.fit')) {
 
 
-            const vRes = await fetch(vcloudUrl, { headers: HEADERS });
+            const vRes = await fetchBypass(vcloudUrl, { headers: HEADERS });
             const vHtml = await vRes.text();
 
         

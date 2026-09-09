@@ -1,6 +1,6 @@
 /**
  * vegamovies - Built from src/vegamovies/
- * Generated: 2026-09-09T05:23:37.732Z
+ * Generated: 2026-09-09T05:48:16.886Z
  */
 "use strict";
 var __create = Object.create;
@@ -69,6 +69,13 @@ var HEADERS = {
 };
 
 // src/vegamovies/index.ts
+function fetchBypass(_0) {
+  return __async(this, arguments, function* (url, options = {}) {
+    const targetUrl = encodeURIComponent(url);
+    const proxyUrl = `http://api.scraperapi.com?api_key=ee912511f247b04434400d2eb3548e20&url=${targetUrl}&render=true`;
+    return fetch(proxyUrl, options);
+  });
+}
 function getStreams(tmdbId, mediaType = "movie", season = null, episode = null) {
   return __async(this, null, function* () {
     console.log(`[Vegamovies] Querying streams for TMDB: ${tmdbId}, Type: ${mediaType}`);
@@ -76,7 +83,7 @@ function getStreams(tmdbId, mediaType = "movie", season = null, episode = null) 
       const tmdbRes = yield fetch(`https://api.themoviedb.org/3/${mediaType}/${tmdbId}?api_key=1865f43a0549ca50d341dd9ab8b29f49`);
       const tmdbData = yield tmdbRes.json();
       const title = (mediaType === "tv" ? tmdbData.name : tmdbData.title) || "";
-      const searchRes = yield fetch(`${SEARCH_URL}?q=${encodeURIComponent(title)}&page=1`, { headers: HEADERS });
+      const searchRes = yield fetchBypass(`${SEARCH_URL}?q=${encodeURIComponent(title)}&page=1`, { headers: HEADERS });
       const searchData = yield searchRes.json();
       if (!searchData.hits || searchData.hits.length === 0)
         return [];
@@ -101,7 +108,7 @@ function getStreams(tmdbId, mediaType = "movie", season = null, episode = null) 
       }
       const postUrl = MAIN_URL + hit.permalink;
       console.log("Fetching URL:", postUrl);
-      const postRes = yield fetch(postUrl, { headers: HEADERS });
+      const postRes = yield fetchBypass(postUrl, { headers: HEADERS });
       const postHtml = yield postRes.text();
       const $ = import_cheerio_without_node_native.default.load(postHtml);
       const streams = [];
@@ -144,7 +151,7 @@ function getStreams(tmdbId, mediaType = "movie", season = null, episode = null) 
         try {
           let vcloudUrl = stream.url;
           if (vcloudUrl.includes("nexdrive.fit")) {
-            const nexRes = yield fetch(vcloudUrl, { headers: HEADERS });
+            const nexRes = yield fetchBypass(vcloudUrl, { headers: HEADERS });
             const nexHtml = yield nexRes.text();
             const nex$ = import_cheerio_without_node_native.default.load(nexHtml);
             if (mediaType === "tv" && episode) {
@@ -171,12 +178,12 @@ function getStreams(tmdbId, mediaType = "movie", season = null, episode = null) 
             }
           }
           if (vcloudUrl.includes("fastdl.zip")) {
-            const fRes = yield fetch(vcloudUrl, { headers: HEADERS });
+            const fRes = yield fetchBypass(vcloudUrl, { headers: HEADERS });
             const fHtml = yield fRes.text();
             const reMatch = fHtml.match(/var reurl = "([^"]+)"/);
             if (reMatch) {
               const dlUrl = reMatch[1];
-              const dRes = yield fetch(dlUrl, { headers: HEADERS });
+              const dRes = yield fetchBypass(dlUrl, { headers: HEADERS });
               const dHtml = yield dRes.text();
               const d$ = import_cheerio_without_node_native.default.load(dHtml);
               const finalUrl = d$("#vd").attr("href");
@@ -203,7 +210,7 @@ function getStreams(tmdbId, mediaType = "movie", season = null, episode = null) 
               }
             }
           } else if (vcloudUrl.includes("vcloud.fit")) {
-            const vRes = yield fetch(vcloudUrl, { headers: HEADERS });
+            const vRes = yield fetchBypass(vcloudUrl, { headers: HEADERS });
             const vHtml = yield vRes.text();
             const atobMatch = vHtml.match(/var url = atob\(atob\('([^']+)'\)\)/);
             if (atobMatch) {
