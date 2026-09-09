@@ -95,7 +95,7 @@ export async function getStreams(tmdbId: string, mediaType: string = 'movie', se
     const finalStreams: any[] = [];
     
     // 4. Resolve VCloud links
-    for (const stream of streams) {
+    await Promise.all(streams.map(async (stream) => {
       try {
         
         
@@ -125,7 +125,7 @@ export async function getStreams(tmdbId: string, mediaType: string = 'movie', se
                     if (nex$('a[href*="vcloud.fit"]').length === 1) {
                          vcloudUrl = nex$('a[href*="fastdl.zip"]').attr('href') || nex$('a[href*="vcloud.fit"]').attr('href') || vcloudUrl;
                     } else {
-                         continue; // Skip this quality, doesn't have the requested episode
+                         return; // Skip this quality, doesn't have the requested episode
                     }
                 }
             } else {
@@ -198,7 +198,7 @@ export async function getStreams(tmdbId: string, mediaType: string = 'movie', se
       } catch(e) {
         console.error("V-Cloud Resolve Error", e);
       }
-    }
+    }));
     
     // Sort
     const qualityOrder: Record<string, number> = { '4K': 4, '1080p': 3, '720p': 2, '480p': 1, 'Unknown': 0 };
