@@ -1,6 +1,6 @@
 /**
  * vidsrc - Built from src/vidsrc/
- * Generated: 2026-09-09T06:23:57.620Z
+ * Generated: 2026-09-09T06:27:41.706Z
  */
 "use strict";
 var __defProp = Object.defineProperty;
@@ -64,7 +64,7 @@ var SERVERS = [
 ];
 
 // src/vidsrc/index.ts
-var VIDSRC_EDGE_API = "https://nuvio-providers.pages.dev/api/vidsrc";
+var VIDSRC_EDGE_API = "https://nuvio-providers-rose.vercel.app/api/vidsrc";
 var QUALITY_ORDER = {
   "4K": 5,
   "2160p": 5,

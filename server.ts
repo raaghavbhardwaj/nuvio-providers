@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import cinejoyHandler from './api/cinejoy';
 import proxyHandler from './api/proxy';
+import vidsrcHandler from './api/vidsrc';
 
 const PORT = process.env.PORT || 3000;
 
@@ -25,6 +26,24 @@ const server = http.createServer(async (req, res) => {
       return res;
     };
     return cinejoyHandler(req as any, res as any);
+  }
+
+  if (urlObj.pathname === '/api/vidsrc') {
+    (req as any).query = Object.fromEntries(urlObj.searchParams.entries());
+    (res as any).status = (code: number) => {
+      res.statusCode = code;
+      return res;
+    };
+    (res as any).json = (data: any) => {
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify(data));
+      return res;
+    };
+    (res as any).send = (data: any) => {
+      res.end(data);
+      return res;
+    };
+    return vidsrcHandler(req as any, res as any);
   }
 
   if (urlObj.pathname === '/api/proxy') {

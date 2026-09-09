@@ -199,7 +199,8 @@ export async function onRequestGet(context: { request: Request }): Promise<Respo
     ]);
 
     if (!seedRes.ok) {
-      return new Response(JSON.stringify({ error: 'Failed to fetch seed' }), {
+      const errBody = await seedRes.text();
+      return new Response(JSON.stringify({ error: 'Failed to fetch seed', status: seedRes.status, body: errBody }), {
         status: 500,
         headers: CORS_HEADERS,
       });

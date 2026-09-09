@@ -6,7 +6,7 @@
 import type { GetStreams, MediaType, Quality, Stream, Subtitle } from '../../types/nuvio';
 import { API_BASE, DEC_API_URL, SERVERS, SUBTITLES_API_URL, VIDSRC_HEADERS } from './constants';
 
-const VIDSRC_EDGE_API = 'https://nuvio-providers.pages.dev/api/vidsrc';
+const VIDSRC_EDGE_API = 'https://nuvio-providers-rose.vercel.app/api/vidsrc';
 
 interface TmdbResponse {
   title?: string;
