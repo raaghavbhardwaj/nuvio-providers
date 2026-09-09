@@ -1,12 +1,12 @@
 {
   "name": "Raaghav's Repo",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "scrapers": [
     {
       "id": "cinejoy",
       "name": "Cinejoy",
-      "description": "Multi-server fast HLS streaming (1080p) with synchronized subtitles powered by Vercel edge proxy.",
-      "version": "1.0.0",
+      "description": "Multi-server fast HLS streaming (4K/1080p) with synchronized subtitles powered by Vercel edge proxy.",
+      "version": "1.0.1",
       "author": "raaghav",
       "supportedTypes": ["movie", "tv"],
       "filename": "providers/cinejoy.js",
@@ -19,7 +19,7 @@
       "id": "vidsrc",
       "name": "VidSrc",
       "description": "Blazing fast multi-server HLS streaming (up to 4K UHD) with full subtitles.",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "author": "raaghav",
       "supportedTypes": ["movie", "tv"],
       "filename": "providers/vidsrc.js",

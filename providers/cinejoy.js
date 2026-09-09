@@ -1,6 +1,6 @@
 /**
  * cinejoy - Built from src/cinejoy/
- * Generated: 2026-09-09T06:27:41.696Z
+ * Generated: 2026-09-09T06:33:57.523Z
  */
 "use strict";
 var __defProp = Object.defineProperty;
@@ -245,9 +245,10 @@ var getStreams = (tmdbId, mediaType, season, episode) => __async(void 0, null, f
       `[Cinejoy] Resolving streams for TMDB ID: ${tmdbId}, Type: ${mediaType}${mediaType === "tv" ? ` S${season}E${episode}` : ""}`
     );
     try {
-      const typeParam = mediaType === "tv" ? "series" : "movie";
+      const isTv = mediaType === "tv" || mediaType === "series" || season !== null;
+      const typeParam = isTv ? "series" : "movie";
       let edgeUrl = `${CINEJOY_EDGE_API}?tmdb=${encodeURIComponent(tmdbId)}&type=${typeParam}`;
-      if (mediaType === "tv" && season && episode) {
+      if (isTv && season && episode) {
         edgeUrl += `&season=${season}&episode=${episode}`;
       }
       const edgeRes = yield fetch(edgeUrl);

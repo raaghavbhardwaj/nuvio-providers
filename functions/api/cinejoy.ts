@@ -103,9 +103,10 @@ async function fetchSubtitles(
   episode: string | null
 ): Promise<Subtitle[]> {
   try {
-    const typeParam = mediaType === 'tv' ? 'series' : 'movie';
+    const isTv = mediaType === 'tv' || mediaType === 'series';
+    const typeParam = isTv ? 'series' : 'movie';
     let url = `${SUBTITLES_API_URL}/subtitles?type=${typeParam}&tmdb=${encodeURIComponent(tmdbId)}`;
-    if (mediaType === 'tv' && season && episode) {
+    if (isTv && season && episode) {
       url += `&season=${season}&episode=${episode}`;
     }
 
@@ -138,9 +139,10 @@ async function extractServer(
   debugLogs: string[]
 ): Promise<Stream[]> {
   try {
-    const typeParam = mediaType === 'tv' ? 'series' : 'movie';
+    const isTv = mediaType === 'tv' || mediaType === 'series';
+    const typeParam = isTv ? 'series' : 'movie';
     let targetUrl = `${API_GATEWAY_URL}/?type=${typeParam}&tmdb=${encodeURIComponent(tmdbId)}&server=${encodeURIComponent(server)}`;
-    if (mediaType === 'tv' && season && episode) {
+    if (isTv && season && episode) {
       targetUrl += `&season=${season}&episode=${episode}`;
     }
 
