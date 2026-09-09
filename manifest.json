@@ -1,6 +1,6 @@
 {
   "name": "Raaghav's Repo",
-  "version": "1.0.9",
+  "version": "1.1.0",
   "scrapers": [
     {
       "id": "cinejoy",
@@ -16,6 +16,19 @@
       "contentLanguage": ["en"]
     },
     {
+      "id": "vidsrc",
+      "name": "VidSrc",
+      "description": "Blazing fast multi-server HLS streaming (up to 4K UHD) with full subtitles.",
+      "version": "1.0.0",
+      "author": "raaghav",
+      "supportedTypes": ["movie", "tv"],
+      "filename": "providers/vidsrc.js",
+      "enabled": true,
+      "formats": ["m3u8"],
+      "logo": "https://www.google.com/s2/favicons?domain=vidsrc.to&sz=128",
+      "contentLanguage": ["en"]
+    },
+    {
       "id": "vegamovies",
       "name": "Vegamovies",
       "description": "High quality 1080p/4K direct links via ScraperAPI. (Optimized concurrent extraction for faster load times).",
@@ -23,7 +36,7 @@
       "author": "raaghav",
       "supportedTypes": ["movie", "tv"],
       "filename": "providers/vegamovies.js",
-      "enabled": true,
+      "enabled": false,
       "formats": ["mkv", "mp4"],
       "logo": "https://www.google.com/s2/favicons?domain=vegamovies.futbol&sz=128",
       "contentLanguage": ["en"]
